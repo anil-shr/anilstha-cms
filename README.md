@@ -6,7 +6,7 @@ Designed with an editorial, typography-focused visual constitution that avoids A
 
 ---
 
-## 1. Technology Stack
+## 1. Technology Stacks
 
 - **Frontend Framework:** React 19 / TypeScript / Vite / Next.js compatible
 - **Styling:** Tailwind CSS (v4) with custom typography tokens (`Plus Jakarta Sans` & `Cabinet Grotesk`)
