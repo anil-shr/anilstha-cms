@@ -88,7 +88,7 @@ export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 rounded-lg bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/5 transition-all inline-flex items-center gap-1.5 shadow-2xs group"
                 >
-                  <SocialIcon platform={link.platform} className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
+                  <SocialIcon platform={link.platform} customIconUrl={link.custom_icon_url} className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
                   <span>{link.platform}</span>
                   <ArrowUpRight className="w-2.5 h-2.5 opacity-50 group-hover:translate-x-0.5 transition-transform" />
                 </a>

@@ -76,12 +76,12 @@ export const DashboardPage: React.FC = () => {
           <SpotlightCard className="p-5 space-y-2">
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span className="uppercase tracking-wider font-semibold">Profile Completion</span>
-              <User className="w-4 h-4 text-purple-400" />
+              <User className="w-4 h-4 text-sky-400" />
             </div>
             <p className="text-3xl font-black text-white font-mono">{profileCompletion}%</p>
             <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden mt-2">
               <div
-                className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-full rounded-full"
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full"
                 style={{ width: `${profileCompletion}%` }}
               />
             </div>
@@ -130,15 +130,15 @@ export const DashboardPage: React.FC = () => {
           <Link
             to="/"
             target="_blank"
-            className="p-5 rounded-2xl bg-[#0d121f] border border-white/10 hover:border-purple-500/40 transition-all flex items-center justify-between group"
+            className="p-5 rounded-2xl bg-[#0d121f] border border-white/10 hover:border-emerald-500/40 transition-all flex items-center justify-between group"
           >
             <div className="space-y-1">
-              <h3 className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors">
+              <h3 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
                 Preview Live Site
               </h3>
               <p className="text-xs text-slate-400">Inspect animations, mouse glow, and layout.</p>
             </div>
-            <ExternalLink className="w-5 h-5 text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+            <ExternalLink className="w-5 h-5 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 

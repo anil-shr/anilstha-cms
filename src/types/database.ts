@@ -67,6 +67,7 @@ export interface Service {
   title: string;
   description: string;
   icon?: string;
+  custom_icon_url?: string;
   deliverables?: string[];
   featured: boolean;
   sort_order: number;
@@ -80,6 +81,7 @@ export interface Skill {
   name: string;
   category: string;
   sort_order: number;
+  custom_icon_url?: string;
   created_at?: string;
 }
 
@@ -103,6 +105,7 @@ export interface SocialLink {
   url: string;
   sort_order: number;
   active: boolean;
+  custom_icon_url?: string;
   created_at?: string;
 }
 

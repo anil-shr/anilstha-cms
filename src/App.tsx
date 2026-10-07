@@ -39,6 +39,7 @@ import { SocialLinksPage } from './pages/admin/SocialLinksPage';
 import { MediaLibraryPage } from './pages/admin/MediaLibraryPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { AnalyticsDashboardPage } from './pages/admin/AnalyticsDashboardPage';
+import { InquiriesPage } from './pages/admin/InquiriesPage';
 
 export default function App() {
   const { path } = useRouter();
@@ -90,6 +91,9 @@ export default function App() {
     if (path === '/admin/social-links') {
       return <SocialLinksPage />;
     }
+    if (path === '/admin/inquiries' || path === '/admin/messages') {
+      return <InquiriesPage />;
+    }
     if (path === '/admin/media') {
       return <MediaLibraryPage />;
     }
@@ -136,7 +140,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fafc] dark:bg-[#12131a] text-slate-900 dark:text-slate-100 selection:bg-purple-600 selection:text-white relative transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#f8fafc] dark:bg-[#121212] text-slate-900 dark:text-slate-100 selection:bg-blue-600 selection:text-white relative transition-colors duration-200">
       <MouseGlow />
       <Navbar />
       <main className="flex-1 relative z-10">{renderPublicPage()}</main>

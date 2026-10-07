@@ -7,6 +7,7 @@ import {
   SocialLink,
   SiteSettings,
   MediaItem,
+  ContactMessage,
 } from '../types/database';
 
 export const initialProfile: Profile = {
@@ -320,3 +321,34 @@ export const initialSiteSettings: SiteSettings = {
   allow_indexing: true,
   maintenance_mode: false,
 };
+
+export const initialContactMessages: ContactMessage[] = [
+  {
+    id: 'msg-1',
+    name: 'Suman Thapa',
+    email: 'suman.thapa@himalayantrek.com',
+    subject: 'Brand Identity & Packaging for Organic Tea Brand',
+    message: 'Hello Anil, we came across your design portfolio and loved your work on Kora Organics. We are launching a premium Himalayan loose-leaf tea brand and need complete visual identity, packaging dielines, and pre-press production oversight. What is your current availability?',
+    status: 'unread',
+    created_at: '2026-03-28T10:30:00Z',
+  },
+  {
+    id: 'msg-2',
+    name: 'Elena Rostova',
+    email: 'elena@novacreative.studio',
+    subject: 'UI/UX Design System Prototyping in Figma',
+    message: 'Hi Anil! We need a talented designer with vibe coding understanding to design a 12-screen mobile fintech app and design system tokens in Figma. Would love to schedule a quick call to discuss scope and timelines.',
+    status: 'read',
+    created_at: '2026-03-25T14:15:00Z',
+  },
+  {
+    id: 'msg-3',
+    name: 'Kiran Gurung',
+    email: 'kiran@pokharajazz.org',
+    subject: 'Event Posters & Merch Collateral for Music Festival',
+    message: 'Namaste Anil, we are organizing the upcoming Pokhara Lakeside Music Festival and require 3 key visual posters, merchandise apparel graphics, and social media campaign templates.',
+    status: 'replied',
+    created_at: '2026-03-20T09:00:00Z',
+  },
+];
+

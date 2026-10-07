@@ -76,16 +76,16 @@ export const HomePage: React.FC = () => {
         <div className="relative z-10 max-w-5xl mx-auto space-y-8">
           
           {/* Top Pill Badge matching screenshot */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 shadow-xs text-xs font-medium text-slate-700 dark:text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+          <div className="inline-flex max-w-full flex-wrap justify-center items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-white/90 dark:bg-[#1e1e1e] border border-slate-200/90 dark:border-white/10 shadow-xs text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0" />
             <span className="font-semibold text-slate-900 dark:text-white">
               {profile.name || 'Anil Shrestha'}
             </span>
-            <span className="text-slate-300 dark:text-slate-600">•</span>
-            <span>{profile.profession || 'Graphic Designer & UI/UX Specialist'}</span>
-            <span className="text-slate-300 dark:text-slate-600">•</span>
+            <span className="text-slate-300 dark:text-slate-600 hidden sm:inline">•</span>
+            <span className="truncate">{profile.profession || 'Graphic Designer & UI/UX Specialist'}</span>
+            <span className="text-slate-300 dark:text-slate-600 hidden sm:inline">•</span>
             <span className="flex items-center gap-1 text-blue-600 dark:text-sky-400 font-medium">
-              <MapPin className="w-3 h-3" />
+              <MapPin className="w-3 h-3 shrink-0" />
               <span>{profile.location || 'Pokhara, Nepal'}</span>
             </span>
           </div>
@@ -131,7 +131,7 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* 4 Stat / Feature Cards matching Screenshot */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-6 max-w-4xl mx-auto text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-6 max-w-4xl mx-auto text-left">
             {/* Card 1: Graphic Design */}
             <SpotlightCard className="p-4 sm:p-5 flex items-center gap-3.5 shadow-2xs">
               <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-sky-400 flex items-center justify-center shrink-0">
@@ -199,7 +199,7 @@ export const HomePage: React.FC = () => {
       {/* ========================================================================= */}
       {/* BOTTOM MARQUEE TAPE BANNER (Matching Screenshot Exactly)                  */}
       {/* ========================================================================= */}
-      <div className="relative w-full bg-[#0a0d14] dark:bg-[#07090e] border-y border-slate-800 text-white py-3.5 overflow-hidden select-none">
+      <div className="relative w-full bg-[#18181b] border-y border-slate-200 dark:border-white/10 text-white py-3 sm:py-3.5 overflow-hidden select-none">
         <div className="animate-marquee flex items-center gap-8 whitespace-nowrap text-xs font-bold uppercase tracking-widest text-slate-200">
           {[...marqueeItems, ...marqueeItems, ...marqueeItems].map((item, idx) => (
             <span key={idx} className="flex items-center gap-8">
@@ -234,10 +234,10 @@ export const HomePage: React.FC = () => {
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-4 rounded-xl bg-white dark:bg-[#171b28] border border-slate-200/90 dark:border-white/10 hover:border-blue-500/50 dark:hover:border-sky-400/50 hover:shadow-md transition-all flex flex-col items-center justify-center gap-2 group text-slate-800 dark:text-slate-200"
+              className="p-4 rounded-xl bg-white dark:bg-[#1e1e1e] border border-slate-200/90 dark:border-white/10 hover:border-blue-500/50 dark:hover:border-sky-400/50 hover:shadow-md transition-all flex flex-col items-center justify-center gap-2 group text-slate-800 dark:text-slate-200"
             >
               <div className="p-2.5 rounded-full bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-sky-400 group-hover:scale-110 transition-transform">
-                <SocialIcon platform={link.platform} className="w-5 h-5" />
+                <SocialIcon platform={link.platform} customIconUrl={link.custom_icon_url} className="w-5 h-5" />
               </div>
               <span className="text-xs font-semibold tracking-tight">{link.platform}</span>
               <span className="text-[10px] text-slate-400 group-hover:text-blue-600 dark:group-hover:text-sky-400 flex items-center gap-0.5">
@@ -370,7 +370,7 @@ export const HomePage: React.FC = () => {
       {/* DOWNLOAD RESUME / CV SECTION                                             */}
       {/* ========================================================================= */}
       <section className="py-14 px-4 md:px-8 max-w-7xl mx-auto border-t border-slate-200 dark:border-white/10">
-        <SpotlightCard className="p-8 sm:p-12 text-center relative overflow-hidden bg-gradient-to-br from-blue-50/40 via-white to-sky-50/40 dark:from-[#171b28] dark:via-[#161a26] dark:to-[#1a1e2d] border-blue-200/60 dark:border-sky-500/20">
+        <SpotlightCard className="p-8 sm:p-12 text-center relative overflow-hidden bg-gradient-to-br from-blue-50/40 via-white to-sky-50/40 dark:from-[#1e1e1e] dark:via-[#222226] dark:to-[#1e1e1e] border-blue-200/60 dark:border-white/10">
           <div className="max-w-2xl mx-auto space-y-4">
             <span className="px-3 py-1 rounded-full text-xs font-mono font-semibold uppercase tracking-wider bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-sky-300 border border-blue-200 dark:border-blue-800/40 inline-block">
               Curriculum Vitae
@@ -420,7 +420,7 @@ export const HomePage: React.FC = () => {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
         >
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white dark:bg-[#171b28] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-left">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-left">
             <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/10">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">

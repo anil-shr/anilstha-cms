@@ -21,14 +21,16 @@
   }
 
   html.dark, :root.dark {
-    /* Soft charcoal / deep slate background avoiding pure black */
-    --bg-page: #11141e;
-    --bg-card: #171b28;
-    --bg-card-hover: #1e2334;
+    /* User specified: Avoid Pure Black (#000000). Use dark grays (#121212 or #1E1E1E) for main backgrounds */
+    --bg-page: #121212;
+    /* Layered Surfaces: elevated lighter gray cards (#1e1e1e) so elements stand out without harsh borders */
+    --bg-card: #1e1e1e;
+    --bg-card-hover: #26262a;
     --border-color: rgba(255, 255, 255, 0.08);
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
+    /* Off-white headings and muted light gray body text for comfortable long-form reading */
+    --text-primary: #f0f2f5;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
     color-scheme: dark;
   }
   
@@ -45,7 +47,7 @@
     overflow-x: hidden;
   }
 
-  /* Form inputs styling with clean blue/cyan glow instead of purple */
+  /* Form inputs styling with clean electric blue/cyan glow instead of purple */
   input, textarea, select {
     background-color: var(--bg-card);
     border-color: var(--border-color);
@@ -59,7 +61,7 @@
   }
 }
 
-/* Subtle clean grid mesh matching the screenshot */
+/* Subtle clean grid mesh */
 .bg-hero-grid {
   background-size: 32px 32px;
   background-image: 
@@ -69,8 +71,8 @@
 
 .dark .bg-hero-grid {
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
 }
 
 /* Custom smooth scrollbar */
@@ -86,16 +88,16 @@
   border-radius: 9999px;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #333338;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #4a4a52;
 }
 
-/* Marquee infinite scroll - optimized */
+/* Marquee infinite scroll */
 @keyframes marquee {
   0% { transform: translateX(0%); }
   100% { transform: translateX(-50%); }

@@ -50,8 +50,16 @@ export const ServicesPage: React.FC = () => {
         {activeServices.map((srv) => (
           <SpotlightCard key={srv.id} className="p-6 sm:p-8 flex flex-col justify-between space-y-6">
             <div className="space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-sky-400 flex items-center justify-center font-bold">
-                <Palette className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-white/5 border border-blue-200 dark:border-white/10 text-blue-600 dark:text-sky-400 flex items-center justify-center font-bold p-2 overflow-hidden">
+                {srv.custom_icon_url ? (
+                  <img
+                    src={srv.custom_icon_url}
+                    alt={srv.title}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <Palette className="w-6 h-6" />
+                )}
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{srv.title}</h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{srv.description}</p>

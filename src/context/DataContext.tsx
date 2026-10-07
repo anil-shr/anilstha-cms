@@ -20,6 +20,7 @@ import {
   initialSocialLinks,
   initialMedia,
   initialSiteSettings,
+  initialContactMessages,
 } from '../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -61,6 +62,8 @@ interface DataContextType {
   deleteMediaItem: (id: string) => Promise<boolean>;
   updateSiteSettings: (settings: SiteSettings) => Promise<boolean>;
   submitContactMessage: (msg: Omit<ContactMessage, 'id' | 'status' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
+  updateMessageStatus: (id: string, status: ContactMessage['status']) => Promise<boolean>;
+  deleteContactMessage: (id: string) => Promise<boolean>;
   cookieConsent: CookiePreferences;
   saveCookieConsent: (prefs: Partial<CookiePreferences>) => void;
 }
@@ -124,7 +127,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : initialContactMessages;
   });
 
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -531,6 +534,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  const updateMessageStatus = async (
+    id: string,
+    status: ContactMessage['status']
+  ): Promise<boolean> => {
+    setContactMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, status } : m))
+    );
+    if (supabase && isSupabaseConfigured) {
+      await supabase.from('contact_messages').update({ status }).eq('id', id);
+    }
+    return true;
+  };
+
+  const deleteContactMessage = async (id: string): Promise<boolean> => {
+    setContactMessages((prev) => prev.filter((m) => m.id !== id));
+    if (supabase && isSupabaseConfigured) {
+      await supabase.from('contact_messages').delete().eq('id', id);
+    }
+    return true;
+  };
+
   const saveCookieConsent = (prefs: Partial<CookiePreferences>) => {
     setCookieConsent((prev) => ({
       ...prev,
@@ -573,6 +597,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteMediaItem,
         updateSiteSettings,
         submitContactMessage,
+        updateMessageStatus,
+        deleteContactMessage,
         cookieConsent,
         saveCookieConsent,
       }}

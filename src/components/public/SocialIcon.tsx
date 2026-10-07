@@ -25,8 +25,19 @@ export const BehanceIcon: React.FC<{ className?: string }> = ({ className = 'w-4
 
 export const SocialIcon: React.FC<{
   platform: string;
+  customIconUrl?: string;
   className?: string;
-}> = ({ platform, className = 'w-4 h-4' }) => {
+}> = ({ platform, customIconUrl, className = 'w-4 h-4' }) => {
+  if (customIconUrl) {
+    return (
+      <img
+        src={customIconUrl}
+        alt={platform}
+        className={`${className} object-contain`}
+      />
+    );
+  }
+
   const norm = (platform || '').toLowerCase().trim();
 
   if (norm.includes('facebook') || norm === 'fb') {
