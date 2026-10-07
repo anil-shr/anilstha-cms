@@ -149,3 +149,10 @@ export interface CookiePreferences {
   marketing: boolean;
   hasConsented: boolean;
 }
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: 'admin';
+}
+

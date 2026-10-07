@@ -17,7 +17,9 @@ export const ProjectFormPage: React.FC<{ projectId?: string }> = ({ projectId })
   const { navigate } = useRouter();
 
   const isEdit = Boolean(projectId && projectId !== 'new');
-  const existingProject = isEdit ? projects.find((p) => p.id === projectId) : null;
+  const existingProject = isEdit
+    ? projects.find((p) => p.id === projectId || p.slug === projectId)
+    : null;
 
   const [formData, setFormData] = useState<Project>({
     id: projectId && projectId !== 'new' ? projectId : 'proj-' + Date.now(),

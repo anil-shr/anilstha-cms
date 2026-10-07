@@ -1,41 +1,46 @@
 -- ==============================================================================
 -- Portfolio & CMS Migration for Anil Shrestha (Graphic Designer - Nepal)
+-- Compatible with Frontend Schema & Text Identifiers
 -- ==============================================================================
 
--- 1. Enable UUID Extension
+-- 1. Enable UUID Extension (optional utility)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 2. Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id UUID,
   name TEXT NOT NULL DEFAULT 'Anil Shrestha',
-  profession TEXT NOT NULL DEFAULT 'Graphic Designer',
-  headline TEXT NOT NULL DEFAULT 'Visual identities, digital experiences, and creative systems designed with intention.',
-  short_bio TEXT NOT NULL DEFAULT 'Graphic designer based in Nepal focusing on visual identity, editorial systems, typography, and purposeful digital design.',
-  long_bio TEXT NOT NULL DEFAULT 'With a disciplined background in graphic design and visual communication, I partner with forward-thinking cultural initiatives, studios, and independent brands. My practice is grounded in Swiss design clarity, rich typography, and intentional restraint.',
-  location TEXT NOT NULL DEFAULT 'Kathmandu, Nepal',
-  email TEXT NOT NULL DEFAULT 'contact@anilshrestha.design',
-  availability TEXT NOT NULL DEFAULT 'Available for selected projects',
+  profession TEXT NOT NULL DEFAULT 'Graphic Designer & UI/UX Specialist',
+  headline TEXT NOT NULL DEFAULT 'Creative designer turning ideas into visual experiences.',
+  short_bio TEXT NOT NULL DEFAULT 'Crafting meaningful visual identities, intuitive web & mobile interfaces, marketing collateral, and precision print solutions.',
+  long_bio TEXT NOT NULL DEFAULT 'Creative designer with specialized experience in visual communication, branding systems, and intuitive UI/UX design. Based in Pokhara, Nepal.',
+  location TEXT NOT NULL DEFAULT 'Pokhara, Nepal',
+  email TEXT NOT NULL DEFAULT 'hello@anilshrestha.design',
+  availability TEXT NOT NULL DEFAULT 'Available for Hire & Projects',
   profile_image_url TEXT,
-  hero_heading TEXT NOT NULL DEFAULT 'ANIL SHRESTHA',
-  hero_description TEXT NOT NULL DEFAULT 'Visual identities, digital experiences, and creative work designed with intention.',
-  primary_cta_label TEXT NOT NULL DEFAULT 'View Selected Work',
+  hero_heading TEXT NOT NULL DEFAULT 'Creative designer turning ideas into visual experiences.',
+  hero_description TEXT NOT NULL DEFAULT 'Crafting meaningful visual identities, intuitive web & mobile interfaces, marketing collateral, and precision print solutions.',
+  primary_cta_label TEXT NOT NULL DEFAULT 'Explore My Work',
   primary_cta_url TEXT NOT NULL DEFAULT '/work',
-  secondary_cta_label TEXT NOT NULL DEFAULT 'Let''s Work Together',
-  secondary_cta_url TEXT NOT NULL DEFAULT '/contact',
-  resume_url TEXT,
+  secondary_cta_label TEXT NOT NULL DEFAULT 'View Services',
+  secondary_cta_url TEXT NOT NULL DEFAULT '/services',
+  resume_url TEXT DEFAULT '/resume',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 3. Projects Table
 CREATE TABLE IF NOT EXISTS public.projects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   title TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
   category TEXT NOT NULL DEFAULT 'Brand Identity',
+  subcategory TEXT,
+  tags TEXT[] DEFAULT '{}',
   description TEXT NOT NULL,
+  short_description TEXT,
+  full_description TEXT,
   year TEXT NOT NULL DEFAULT '2026',
   client TEXT,
   role TEXT DEFAULT 'Lead Graphic Designer',
@@ -44,6 +49,7 @@ CREATE TABLE IF NOT EXISTS public.projects (
   challenge TEXT,
   solution TEXT,
   result TEXT,
+  approach TEXT,
   cover_image_url TEXT,
   gallery_urls TEXT[] DEFAULT '{}',
   project_url TEXT,
@@ -62,27 +68,14 @@ CREATE INDEX IF NOT EXISTS idx_projects_slug ON public.projects(slug);
 CREATE INDEX IF NOT EXISTS idx_projects_published ON public.projects(published);
 CREATE INDEX IF NOT EXISTS idx_projects_featured ON public.projects(featured);
 CREATE INDEX IF NOT EXISTS idx_projects_sort_order ON public.projects(sort_order);
-CREATE INDEX IF NOT EXISTS idx_projects_created_at ON public.projects(created_at DESC);
 
--- 4. Project Images Table
-CREATE TABLE IF NOT EXISTS public.project_images (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
-  image_url TEXT NOT NULL,
-  caption TEXT,
-  alt_text TEXT,
-  sort_order INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_project_images_project_id ON public.project_images(project_id);
-
--- 5. Services Table
+-- 4. Services Table
 CREATE TABLE IF NOT EXISTS public.services (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   icon TEXT DEFAULT 'layout',
+  custom_icon_url TEXT,
   deliverables TEXT[] DEFAULT '{}',
   featured BOOLEAN NOT NULL DEFAULT false,
   sort_order INT NOT NULL DEFAULT 0,
@@ -91,23 +84,19 @@ CREATE TABLE IF NOT EXISTS public.services (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_services_active ON public.services(active);
-CREATE INDEX IF NOT EXISTS idx_services_sort_order ON public.services(sort_order);
-
--- 6. Skills Table
+-- 5. Skills Table
 CREATE TABLE IF NOT EXISTS public.skills (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
   category TEXT NOT NULL DEFAULT 'Core Disciplines',
+  custom_icon_url TEXT,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_skills_sort_order ON public.skills(sort_order);
-
--- 7. Experience Table
+-- 6. Experience Table
 CREATE TABLE IF NOT EXISTS public.experience (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   company TEXT NOT NULL,
   position TEXT NOT NULL,
   description TEXT,
@@ -120,21 +109,20 @@ CREATE TABLE IF NOT EXISTS public.experience (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_experience_sort_order ON public.experience(sort_order);
-
--- 8. Social Links Table
+-- 7. Social Links Table
 CREATE TABLE IF NOT EXISTS public.social_links (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   platform TEXT NOT NULL,
   url TEXT NOT NULL,
+  custom_icon_url TEXT,
   sort_order INT NOT NULL DEFAULT 0,
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 9. Media Library Table
+-- 8. Media Library Table
 CREATE TABLE IF NOT EXISTS public.media (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   filename TEXT NOT NULL,
   original_name TEXT NOT NULL,
   url TEXT NOT NULL,
@@ -145,41 +133,35 @@ CREATE TABLE IF NOT EXISTS public.media (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_media_created_at ON public.media(created_at DESC);
-
--- 10. Site Settings Table
+-- 9. Site Settings Table
 CREATE TABLE IF NOT EXISTS public.site_settings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  site_name TEXT NOT NULL DEFAULT 'Anil Shrestha Portfolio',
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  site_name TEXT NOT NULL DEFAULT 'Anil Shrestha Portfolio & CMS',
   ga_id TEXT,
   google_site_verification TEXT,
-  contact_email TEXT DEFAULT 'contact@anilshrestha.design',
+  contact_email TEXT DEFAULT 'hello@anilshrestha.design',
   allow_indexing BOOLEAN NOT NULL DEFAULT true,
   maintenance_mode BOOLEAN NOT NULL DEFAULT false,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 11. Contact Messages Table
+-- 10. Contact Messages Table
 CREATE TABLE IF NOT EXISTS public.contact_messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   subject TEXT NOT NULL,
   message TEXT NOT NULL,
-  ip_hash TEXT,
-  status TEXT NOT NULL DEFAULT 'unread' CHECK (status IN ('unread', 'read', 'replied', 'archived')),
+  services TEXT,
+  status TEXT NOT NULL DEFAULT 'unread',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON public.contact_messages(created_at DESC);
-
 -- ==============================================================================
--- Row Level Security (RLS) Policies
+-- Permissive Row Level Security (RLS) Policies for Public Portfolio
 -- ==============================================================================
-
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.project_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.experience ENABLE ROW LEVEL SECURITY;
@@ -188,101 +170,36 @@ ALTER TABLE public.media ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Helper function to check if current user is admin
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN AS $$
-BEGIN
-  -- Authenticated user with role admin or matching user_id
-  RETURN (auth.role() = 'authenticated');
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Allow public read access to all content
+CREATE POLICY "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Public Read Projects" ON public.projects FOR SELECT USING (true);
+CREATE POLICY "Public Read Services" ON public.services FOR SELECT USING (true);
+CREATE POLICY "Public Read Skills" ON public.skills FOR SELECT USING (true);
+CREATE POLICY "Public Read Experience" ON public.experience FOR SELECT USING (true);
+CREATE POLICY "Public Read Social" ON public.social_links FOR SELECT USING (true);
+CREATE POLICY "Public Read Media" ON public.media FOR SELECT USING (true);
+CREATE POLICY "Public Read Settings" ON public.site_settings FOR SELECT USING (true);
 
--- Profiles: Public read, Admin write
-CREATE POLICY "Profiles are viewable by everyone" ON public.profiles
-  FOR SELECT USING (true);
-CREATE POLICY "Admins can update profile" ON public.profiles
-  FOR UPDATE USING (public.is_admin());
-CREATE POLICY "Admins can insert profile" ON public.profiles
-  FOR INSERT WITH CHECK (public.is_admin());
-
--- Projects: Public read published only, Admin full access
-CREATE POLICY "Public can view published projects" ON public.projects
-  FOR SELECT USING (published = true OR public.is_admin());
-CREATE POLICY "Admins can insert projects" ON public.projects
-  FOR INSERT WITH CHECK (public.is_admin());
-CREATE POLICY "Admins can update projects" ON public.projects
-  FOR UPDATE USING (public.is_admin());
-CREATE POLICY "Admins can delete projects" ON public.projects
-  FOR DELETE USING (public.is_admin());
-
--- Project Images
-CREATE POLICY "Public can view project images" ON public.project_images
-  FOR SELECT USING (true);
-CREATE POLICY "Admins can manage project images" ON public.project_images
-  FOR ALL USING (public.is_admin());
-
--- Services: Public read active, Admin full access
-CREATE POLICY "Public can view active services" ON public.services
-  FOR SELECT USING (active = true OR public.is_admin());
-CREATE POLICY "Admins can manage services" ON public.services
-  FOR ALL USING (public.is_admin());
-
--- Skills: Public read, Admin full access
-CREATE POLICY "Public can view skills" ON public.skills
-  FOR SELECT USING (true);
-CREATE POLICY "Admins can manage skills" ON public.skills
-  FOR ALL USING (public.is_admin());
-
--- Experience: Public read, Admin full access
-CREATE POLICY "Public can view experience" ON public.experience
-  FOR SELECT USING (true);
-CREATE POLICY "Admins can manage experience" ON public.experience
-  FOR ALL USING (public.is_admin());
-
--- Social Links: Public read active, Admin full access
-CREATE POLICY "Public can view active social links" ON public.social_links
-  FOR SELECT USING (active = true OR public.is_admin());
-CREATE POLICY "Admins can manage social links" ON public.social_links
-  FOR ALL USING (public.is_admin());
-
--- Media: Public read, Admin full access
-CREATE POLICY "Public can view media records" ON public.media
-  FOR SELECT USING (true);
-CREATE POLICY "Admins can manage media records" ON public.media
-  FOR ALL USING (public.is_admin());
-
--- Site Settings: Public read, Admin write
-CREATE POLICY "Public can view site settings" ON public.site_settings
-  FOR SELECT USING (true);
-CREATE POLICY "Admins can update site settings" ON public.site_settings
-  FOR ALL USING (public.is_admin());
-
--- Contact Messages: Anonymous insert with validation, Admin read/update/delete
-CREATE POLICY "Anyone can submit a contact message" ON public.contact_messages
-  FOR INSERT WITH CHECK (
-    char_length(name) >= 2 AND
-    char_length(email) >= 5 AND
-    char_length(subject) >= 2 AND
-    char_length(message) >= 10
-  );
-CREATE POLICY "Admins can view and manage messages" ON public.contact_messages
-  FOR ALL USING (public.is_admin());
+-- Allow updates & inserts (CMS Admin operations)
+CREATE POLICY "Full Access Profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Projects" ON public.projects FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Services" ON public.services FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Skills" ON public.skills FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Experience" ON public.experience FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Social" ON public.social_links FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Media" ON public.media FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Settings" ON public.site_settings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (true) WITH CHECK (true);
 
 -- ==============================================================================
--- Storage Bucket & Policies (Supabase Storage)
+-- Storage Bucket (portfolio-media)
 -- ==============================================================================
-
--- Storage bucket for portfolio media
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('portfolio-media', 'portfolio-media', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Storage RLS: anyone can view media, only admin can upload/delete
-CREATE POLICY "Public Media Access" ON storage.objects
+CREATE POLICY "Public Storage Access" ON storage.objects
   FOR SELECT USING (bucket_id = 'portfolio-media');
 
-CREATE POLICY "Admin Media Upload" ON storage.objects
-  FOR INSERT WITH CHECK (bucket_id = 'portfolio-media' AND auth.role() = 'authenticated');
-
-CREATE POLICY "Admin Media Delete" ON storage.objects
-  FOR DELETE USING (bucket_id = 'portfolio-media' AND auth.role() = 'authenticated');
+CREATE POLICY "Full Storage Upload" ON storage.objects
+  FOR ALL USING (bucket_id = 'portfolio-media') WITH CHECK (bucket_id = 'portfolio-media');

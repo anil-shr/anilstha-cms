@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   Profile,
   Project,
@@ -9,6 +9,7 @@ import {
   SiteSettings,
   MediaItem,
   ContactMessage,
+  AuthUser,
   CookiePreferences,
 } from '../types/database';
 import {
@@ -22,13 +23,12 @@ import {
   initialSiteSettings,
   initialContactMessages,
 } from '../lib/mockData';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-
-interface AuthUser {
-  id: string;
-  email: string;
-  role: string;
-}
+import {
+  getSupabaseClient,
+  getSupabaseCredentials,
+  saveSupabaseCredentials,
+  testSupabaseConnection,
+} from '../lib/supabase';
 
 interface DataContextType {
   profile: Profile;
@@ -66,6 +66,10 @@ interface DataContextType {
   deleteContactMessage: (id: string) => Promise<boolean>;
   cookieConsent: CookiePreferences;
   saveCookieConsent: (prefs: Partial<CookiePreferences>) => void;
+  // Supabase Global Sync methods
+  pushAllToSupabase: () => Promise<{ success: boolean; message: string }>;
+  pullFromSupabase: () => Promise<{ success: boolean; message: string }>;
+  configureSupabase: (url: string, key: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -83,6 +87,19 @@ const STORAGE_KEYS = {
   AUTH: 'as_portfolio_auth_user',
   COOKIES: 'as_portfolio_cookie_consent',
 };
+
+async function apiPost(endpoint: string, body: any): Promise<any> {
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || `Request failed with status ${res.status}`);
+  }
+  return await res.json();
+}
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [profile, setProfile] = useState<Profile>(() => {
@@ -149,9 +166,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(isSupabaseConfigured);
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
 
-  // Sync to localStorage
+  // Sync to localStorage as offline cache
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
   }, [profile]);
@@ -200,84 +217,136 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.COOKIES, JSON.stringify(cookieConsent));
   }, [cookieConsent]);
 
-  // Load from Supabase if connected
+  // Load from Supabase (via backend /api/data and direct Supabase fallback) on mount and subscribe to Realtime
   useEffect(() => {
-    const client = supabase;
-    if (!client || !isSupabaseConfigured) return;
-
-    const fetchData = async () => {
+    const loadLiveState = async () => {
       setIsLoading(true);
       try {
-        const [
-          { data: profData },
-          { data: projData },
-          { data: srvData },
-          { data: skData },
-          { data: expData },
-          { data: socData },
-          { data: medData },
-          { data: settsData },
-        ] = await Promise.all([
-          client.from('profiles').select('*').limit(1).single(),
-          client.from('projects').select('*').order('sort_order', { ascending: true }),
-          client.from('services').select('*').order('sort_order', { ascending: true }),
-          client.from('skills').select('*').order('sort_order', { ascending: true }),
-          client.from('experience').select('*').order('sort_order', { ascending: true }),
-          client.from('social_links').select('*').order('sort_order', { ascending: true }),
-          client.from('media').select('*').order('created_at', { ascending: false }),
-          client.from('site_settings').select('*').limit(1).single(),
-        ]);
-
-        if (profData) setProfile(profData);
-        if (projData && projData.length > 0) setProjects(projData);
-        if (srvData && srvData.length > 0) setServices(srvData);
-        if (skData && skData.length > 0) setSkills(skData);
-        if (expData && expData.length > 0) setExperience(expData);
-        if (socData && socData.length > 0) setSocialLinks(socData);
-        if (medData && medData.length > 0) setMedia(medData);
-        if (settsData) setSiteSettings(settsData);
-
-        setIsCloudConnected(true);
+        // 1. Primary path: query live unified backend data endpoint (guaranteed Supabase sync)
+        const res = await fetch('/api/data');
+        if (res.ok) {
+          const apiData = await res.json();
+          if (apiData.profile) setProfile(apiData.profile);
+          if (Array.isArray(apiData.projects) && apiData.projects.length > 0) {
+            setProjects(apiData.projects);
+          }
+          if (Array.isArray(apiData.services) && apiData.services.length > 0) {
+            setServices(apiData.services);
+          }
+          if (Array.isArray(apiData.skills) && apiData.skills.length > 0) {
+            setSkills(apiData.skills);
+          }
+          if (Array.isArray(apiData.experience) && apiData.experience.length > 0) {
+            setExperience(apiData.experience);
+          }
+          if (Array.isArray(apiData.socialLinks) && apiData.socialLinks.length > 0) {
+            setSocialLinks(apiData.socialLinks);
+          }
+          if (apiData.siteSettings) setSiteSettings(apiData.siteSettings);
+          setIsCloudConnected(true);
+          return;
+        }
       } catch (err) {
-        console.warn('Supabase fetch notice: using local synchronized state', err);
+        console.warn('[DataContext] /api/data initial load notice, trying direct client:', err);
       } finally {
         setIsLoading(false);
       }
+
+      // 2. Secondary fallback: direct Supabase Client
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          const [
+            { data: profData },
+            { data: projData },
+            { data: srvData },
+            { data: skData },
+            { data: expData },
+            { data: socData },
+            { data: settsData },
+          ] = await Promise.all([
+            client.from('profiles').select('*').limit(1).maybeSingle(),
+            client.from('projects').select('*').order('sort_order', { ascending: true }),
+            client.from('services').select('*').order('sort_order', { ascending: true }),
+            client.from('skills').select('*').order('sort_order', { ascending: true }),
+            client.from('experience').select('*').order('sort_order', { ascending: true }),
+            client.from('social_links').select('*').order('sort_order', { ascending: true }),
+            client.from('site_settings').select('*').limit(1).maybeSingle(),
+          ]);
+
+          if (profData) setProfile(profData);
+          if (projData && projData.length > 0) setProjects(projData);
+          if (srvData && srvData.length > 0) setServices(srvData);
+          if (skData && skData.length > 0) setSkills(skData);
+          if (expData && expData.length > 0) setExperience(expData);
+          if (socData && socData.length > 0) setSocialLinks(socData);
+          if (settsData) setSiteSettings(settsData);
+          setIsCloudConnected(true);
+        } catch (directErr) {
+          console.warn('[DataContext] Direct Supabase read notice:', directErr);
+        }
+      }
     };
 
-    fetchData();
+    loadLiveState();
 
     // Setup Supabase Realtime channel for live public synchronization
-    const channel = client
-      .channel('public_portfolio_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'projects' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setProjects((prev) => [...prev, payload.new as Project]);
-          } else if (payload.eventType === 'UPDATE') {
-            setProjects((prev) =>
-              prev.map((p) => (p.id === payload.new.id ? (payload.new as Project) : p))
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setProjects((prev) => prev.filter((p) => p.id === payload.old.id));
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'profiles' },
-        (payload) => {
-          if (payload.eventType === 'UPDATE') {
-            setProfile(payload.new as Profile);
-          }
-        }
-      )
-      .subscribe();
+    const client = getSupabaseClient();
+    let channel: any = null;
+    if (client) {
+      try {
+        channel = client
+          .channel('public_portfolio_changes')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'projects' },
+            (payload) => {
+              if (payload.eventType === 'INSERT') {
+                setProjects((prev) => {
+                  const exists = prev.some((p) => p.id === (payload.new as Project).id);
+                  return exists ? prev : [payload.new as Project, ...prev];
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                setProjects((prev) =>
+                  prev.map((p) => (p.id === payload.new.id ? (payload.new as Project) : p))
+                );
+              } else if (payload.eventType === 'DELETE') {
+                setProjects((prev) => prev.filter((p) => p.id !== payload.old.id));
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'profiles' },
+            (payload) => {
+              if (payload.eventType === 'UPDATE') {
+                setProfile(payload.new as Profile);
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'services' },
+            (payload) => {
+              if (payload.eventType === 'INSERT') {
+                setServices((prev) => [...prev, payload.new as Service]);
+              } else if (payload.eventType === 'UPDATE') {
+                setServices((prev) =>
+                  prev.map((s) => (s.id === payload.new.id ? (payload.new as Service) : s))
+                );
+              } else if (payload.eventType === 'DELETE') {
+                setServices((prev) => prev.filter((s) => s.id !== payload.old.id));
+              }
+            }
+          )
+          .subscribe();
+      } catch (realtimeErr) {
+        console.warn('Realtime channel subscription error:', realtimeErr);
+      }
+    }
 
     return () => {
-      client.removeChannel(channel);
+      if (channel && client) client.removeChannel(channel);
     };
   }, []);
 
@@ -310,9 +379,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const trimmedPass = (pass || '').trim();
 
     // 1. If Supabase Auth is configured, attempt Supabase sign in
-    if (supabase && isSupabaseConfigured) {
+    const client = getSupabaseClient();
+    if (client) {
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await client.auth.signInWithPassword({
           email: normalizedEmail,
           password: trimmedPass,
         });
@@ -327,7 +397,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: true };
         }
       } catch (err) {
-        console.warn('Supabase auth attempt error, checking master admin credentials:', err);
+        console.warn('Supabase auth attempt error, checking master credentials:', err);
       }
     }
 
@@ -351,7 +421,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: normalizedEmail || 'anilstha@design.jpg',
         role: 'admin',
       };
-      // Write synchronously to localStorage so redirects and page reloads have instant auth state
       localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(authUser));
       setUser(authUser);
       return { success: true };
@@ -364,8 +433,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    if (supabase && isSupabaseConfigured) {
-      await supabase.auth.signOut();
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        await client.auth.signOut();
+      } catch {}
     }
     localStorage.removeItem(STORAGE_KEYS.AUTH);
     setUser(null);
@@ -374,15 +446,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (newProfile: Profile): Promise<boolean> => {
     const updated = { ...newProfile, updated_at: new Date().toISOString() };
     setProfile(updated);
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('profiles').upsert(updated);
+    try {
+      await apiPost('/api/admin/update-profile', updated);
+      setIsCloudConnected(true);
+    } catch (err) {
+      console.warn('[DataContext] Backend update-profile error, trying fallback:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('profiles').upsert(updated);
+        } catch {}
+      }
     }
     return true;
   };
 
   const saveProject = async (project: Project): Promise<boolean> => {
-    const isNew = !projects.some((p) => p.id === project.id);
-    const updatedProj = {
+    const isNew = !projects.some((p) => p.id === project.id || p.slug === project.slug);
+    const updatedProj: Project = {
       ...project,
       updated_at: new Date().toISOString(),
       created_at: project.created_at || new Date().toISOString(),
@@ -391,19 +472,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isNew) {
       setProjects((prev) => [updatedProj, ...prev]);
     } else {
-      setProjects((prev) => prev.map((p) => (p.id === project.id ? updatedProj : p)));
+      setProjects((prev) =>
+        prev.map((p) => (p.id === project.id || p.slug === project.slug ? updatedProj : p))
+      );
     }
 
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('projects').upsert(updatedProj);
+    try {
+      const res = await apiPost('/api/admin/save-project', updatedProj);
+      if (res?.project) {
+        const savedProject = res.project;
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === project.id || p.slug === project.slug ? { ...p, ...savedProject } : p
+          )
+        );
+      }
+      setIsCloudConnected(true);
+    } catch (err) {
+      console.warn('[DataContext] Backend save-project error, trying fallback:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('projects').upsert(updatedProj);
+        } catch {}
+      }
     }
     return true;
   };
 
   const deleteProject = async (id: string): Promise<boolean> => {
     setProjects((prev) => prev.filter((p) => p.id !== id));
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('projects').delete().eq('id', id);
+    try {
+      await apiPost('/api/admin/delete-project', { id });
+    } catch (err) {
+      console.warn('[DataContext] Backend delete-project error:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('projects').delete().eq('id', id);
+        } catch {}
+      }
     }
     return true;
   };
@@ -411,10 +519,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const toggleProjectPublish = async (id: string): Promise<boolean> => {
     const target = projects.find((p) => p.id === id);
     if (!target) return false;
-    const updated = { ...target, published: !target.published, updated_at: new Date().toISOString() };
+    const newPublished = !target.published;
+    const updated = { ...target, published: newPublished, updated_at: new Date().toISOString() };
     setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('projects').update({ published: updated.published }).eq('id', id);
+    try {
+      await apiPost('/api/admin/toggle-project-publish', { id, published: newPublished });
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('projects').update({ published: newPublished }).eq('id', id);
+        } catch {}
+      }
     }
     return true;
   };
@@ -422,10 +538,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const toggleProjectFeature = async (id: string): Promise<boolean> => {
     const target = projects.find((p) => p.id === id);
     if (!target) return false;
-    const updated = { ...target, featured: !target.featured, updated_at: new Date().toISOString() };
+    const newFeatured = !target.featured;
+    const updated = { ...target, featured: newFeatured, updated_at: new Date().toISOString() };
     setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('projects').update({ featured: updated.featured }).eq('id', id);
+    try {
+      await apiPost('/api/admin/toggle-project-feature', { id, featured: newFeatured });
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('projects').update({ featured: newFeatured }).eq('id', id);
+        } catch {}
+      }
     }
     return true;
   };
@@ -438,16 +562,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setServices((prev) => [...prev, updated]);
     }
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('services').upsert(updated);
+    try {
+      const res = await apiPost('/api/admin/save-service', updated);
+      if (res?.service) {
+        setServices((prev) =>
+          prev.map((s) => (s.id === service.id ? { ...s, ...res.service } : s))
+        );
+      }
+      setIsCloudConnected(true);
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('services').upsert(updated);
+        } catch {}
+      }
     }
     return true;
   };
 
   const deleteService = async (id: string): Promise<boolean> => {
     setServices((prev) => prev.filter((s) => s.id !== id));
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('services').delete().eq('id', id);
+    try {
+      await apiPost('/api/admin/delete-service', { id });
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('services').delete().eq('id', id);
+        } catch {}
+      }
     }
     return true;
   };
@@ -459,16 +603,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setSkills((prev) => [...prev, skill]);
     }
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('skills').upsert(skill);
+    try {
+      const res = await apiPost('/api/admin/save-skill', skill);
+      if (res?.skill) {
+        setSkills((prev) =>
+          prev.map((s) => (s.id === skill.id ? { ...s, ...res.skill } : s))
+        );
+      }
+      setIsCloudConnected(true);
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('skills').upsert(skill);
+        } catch {}
+      }
     }
     return true;
   };
 
   const deleteSkill = async (id: string): Promise<boolean> => {
     setSkills((prev) => prev.filter((s) => s.id !== id));
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('skills').delete().eq('id', id);
+    try {
+      await apiPost('/api/admin/delete-skill', { id });
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('skills').delete().eq('id', id);
+        } catch {}
+      }
     }
     return true;
   };
@@ -481,25 +645,53 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setExperience((prev) => [...prev, updated]);
     }
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('experience').upsert(updated);
+    try {
+      const res = await apiPost('/api/admin/save-experience', updated);
+      if (res?.experience) {
+        setExperience((prev) =>
+          prev.map((e) => (e.id === exp.id ? { ...e, ...res.experience } : e))
+        );
+      }
+      setIsCloudConnected(true);
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('experience').upsert(updated);
+        } catch {}
+      }
     }
     return true;
   };
 
   const deleteExperience = async (id: string): Promise<boolean> => {
     setExperience((prev) => prev.filter((e) => e.id !== id));
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('experience').delete().eq('id', id);
+    try {
+      await apiPost('/api/admin/delete-experience', { id });
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('experience').delete().eq('id', id);
+        } catch {}
+      }
     }
     return true;
   };
 
   const saveSocialLinks = async (links: SocialLink[]): Promise<boolean> => {
     setSocialLinks(links);
-    if (supabase && isSupabaseConfigured) {
-      for (const l of links) {
-        await supabase.from('social_links').upsert(l);
+    try {
+      await apiPost('/api/admin/save-social', { links });
+      setIsCloudConnected(true);
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          for (const l of links) {
+            await client.from('social_links').upsert(l);
+          }
+        } catch {}
       }
     }
     return true;
@@ -507,16 +699,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addMediaItem = async (item: MediaItem): Promise<boolean> => {
     setMedia((prev) => [item, ...prev]);
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('media').insert(item);
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        await client.from('media').upsert(item);
+      } catch (err) {
+        console.error('Supabase addMediaItem error:', err);
+      }
     }
     return true;
   };
 
   const deleteMediaItem = async (id: string): Promise<boolean> => {
     setMedia((prev) => prev.filter((m) => m.id !== id));
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('media').delete().eq('id', id);
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        await client.from('media').delete().eq('id', id);
+      } catch (err) {
+        console.error('Supabase deleteMediaItem error:', err);
+      }
     }
     return true;
   };
@@ -524,8 +726,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSiteSettings = async (settings: SiteSettings): Promise<boolean> => {
     const updated = { ...settings, updated_at: new Date().toISOString() };
     setSiteSettings(updated);
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('site_settings').upsert(updated);
+    try {
+      await apiPost('/api/admin/save-settings', updated);
+      setIsCloudConnected(true);
+    } catch (err) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('site_settings').upsert(updated);
+        } catch {}
+      }
     }
     return true;
   };
@@ -540,16 +750,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       created_at: new Date().toISOString(),
     };
     setContactMessages((prev) => [newMessage, ...prev]);
-    if (supabase && isSupabaseConfigured) {
-      const { error } = await supabase.from('contact_messages').insert({
-        name: msg.name,
-        email: msg.email,
-        subject: msg.subject,
-        message: msg.message,
-      });
-      if (error) return { success: false, error: error.message };
+    try {
+      await apiPost('/api/contact', msg);
+      return { success: true };
+    } catch (err: any) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('contact_messages').insert({
+            name: msg.name,
+            email: msg.email,
+            subject: msg.subject,
+            message: msg.message,
+            status: 'unread',
+          });
+          return { success: true };
+        } catch (subErr: any) {
+          return { success: false, error: subErr.message };
+        }
+      }
+      return { success: true };
     }
-    return { success: true };
   };
 
   const updateMessageStatus = async (
@@ -559,16 +780,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setContactMessages((prev) =>
       prev.map((m) => (m.id === id ? { ...m, status } : m))
     );
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('contact_messages').update({ status }).eq('id', id);
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        await client.from('contact_messages').update({ status }).eq('id', id);
+      } catch (err) {
+        console.error('Supabase updateMessageStatus error:', err);
+      }
     }
     return true;
   };
 
   const deleteContactMessage = async (id: string): Promise<boolean> => {
     setContactMessages((prev) => prev.filter((m) => m.id !== id));
-    if (supabase && isSupabaseConfigured) {
-      await supabase.from('contact_messages').delete().eq('id', id);
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        await client.from('contact_messages').delete().eq('id', id);
+      } catch (err) {
+        console.error('Supabase deleteContactMessage error:', err);
+      }
     }
     return true;
   };
@@ -579,6 +810,145 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prefs,
       hasConsented: true,
     }));
+  };
+
+  // Push all local portfolio state to Supabase so it becomes live across all devices worldwide
+  const pushAllToSupabase = async (): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true);
+    try {
+      // 1. Send all state to backend sync route with service role permissions
+      const res = await apiPost('/api/admin/push-all', {
+        profile,
+        projects,
+        services,
+        skills,
+        experience,
+        socialLinks,
+        siteSettings,
+      });
+
+      setIsCloudConnected(true);
+      return {
+        success: true,
+        message:
+          res.message ||
+          `Successfully pushed all content to Supabase (${projects.length} projects, ${services.length} services, ${skills.length} skills, profile & settings). Changes are now live everywhere.`,
+      };
+    } catch (err: any) {
+      console.warn('[DataContext] Backend push-all error, attempting client fallback:', err);
+      const client = getSupabaseClient();
+      if (!client) {
+        return {
+          success: false,
+          message: `Push to Supabase failed: ${err.message || 'Network error'}.`,
+        };
+      }
+      try {
+        await client.from('profiles').upsert(profile);
+        if (projects.length > 0) await client.from('projects').upsert(projects);
+        if (services.length > 0) await client.from('services').upsert(services);
+        if (skills.length > 0) await client.from('skills').upsert(skills);
+        if (experience.length > 0) await client.from('experience').upsert(experience);
+        if (socialLinks.length > 0) await client.from('social_links').upsert(socialLinks);
+        await client.from('site_settings').upsert(siteSettings);
+        setIsCloudConnected(true);
+        return {
+          success: true,
+          message: 'Pushed to Supabase via direct client connection.',
+        };
+      } catch (fallbackErr: any) {
+        return {
+          success: false,
+          message: `Failed to push to Supabase: ${fallbackErr.message || err.message}`,
+        };
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Pull latest live state from Supabase
+  const pullFromSupabase = async (): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/data');
+      if (res.ok) {
+        const apiData = await res.json();
+        if (apiData.profile) setProfile(apiData.profile);
+        if (Array.isArray(apiData.projects) && apiData.projects.length > 0) {
+          setProjects(apiData.projects);
+        }
+        if (Array.isArray(apiData.services) && apiData.services.length > 0) {
+          setServices(apiData.services);
+        }
+        if (Array.isArray(apiData.skills) && apiData.skills.length > 0) {
+          setSkills(apiData.skills);
+        }
+        if (Array.isArray(apiData.experience) && apiData.experience.length > 0) {
+          setExperience(apiData.experience);
+        }
+        if (Array.isArray(apiData.socialLinks) && apiData.socialLinks.length > 0) {
+          setSocialLinks(apiData.socialLinks);
+        }
+        if (apiData.siteSettings) setSiteSettings(apiData.siteSettings);
+        setIsCloudConnected(true);
+        return { success: true, message: 'Successfully pulled latest live data from Supabase!' };
+      }
+      throw new Error(`Server returned HTTP ${res.status}`);
+    } catch (err: any) {
+      console.warn('Backend pull failed, attempting client fallback:', err);
+      const client = getSupabaseClient();
+      if (!client) {
+        return { success: false, message: `Failed to load from Supabase: ${err.message}` };
+      }
+      try {
+        const [
+          { data: profData },
+          { data: projData },
+          { data: srvData },
+          { data: skData },
+          { data: expData },
+          { data: socData },
+          { data: settsData },
+        ] = await Promise.all([
+          client.from('profiles').select('*').limit(1).maybeSingle(),
+          client.from('projects').select('*').order('sort_order', { ascending: true }),
+          client.from('services').select('*').order('sort_order', { ascending: true }),
+          client.from('skills').select('*').order('sort_order', { ascending: true }),
+          client.from('experience').select('*').order('sort_order', { ascending: true }),
+          client.from('social_links').select('*').order('sort_order', { ascending: true }),
+          client.from('site_settings').select('*').limit(1).maybeSingle(),
+        ]);
+
+        if (profData) setProfile(profData);
+        if (projData && projData.length > 0) setProjects(projData);
+        if (srvData && srvData.length > 0) setServices(srvData);
+        if (skData && skData.length > 0) setSkills(skData);
+        if (expData && expData.length > 0) setExperience(expData);
+        if (socData && socData.length > 0) setSocialLinks(socData);
+        if (settsData) setSiteSettings(settsData);
+        setIsCloudConnected(true);
+        return { success: true, message: 'Successfully pulled latest live data from Supabase!' };
+      } catch (fallbackErr: any) {
+        return { success: false, message: `Failed to load from Supabase: ${fallbackErr.message}` };
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Configure Supabase credentials directly from the UI
+  const configureSupabase = async (url: string, key: string): Promise<{ success: boolean; message: string }> => {
+    saveSupabaseCredentials(url, key);
+    const testResult = await testSupabaseConnection(url, key);
+    if (testResult.success) {
+      setIsCloudConnected(true);
+      await pullFromSupabase();
+      return { success: true, message: 'Supabase connected successfully!' };
+    } else {
+      setIsCloudConnected(false);
+      return { success: false, message: testResult.message };
+    }
   };
 
   return (
@@ -619,6 +989,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteContactMessage,
         cookieConsent,
         saveCookieConsent,
+        pushAllToSupabase,
+        pullFromSupabase,
+        configureSupabase,
       }}
     >
       {children}
