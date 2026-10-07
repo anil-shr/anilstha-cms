@@ -305,44 +305,61 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Actions
   const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
-    // If Supabase Auth is configured, try Supabase Auth first
+    const rawEmail = (email || '').trim();
+    const normalizedEmail = rawEmail.toLowerCase();
+    const trimmedPass = (pass || '').trim();
+
+    // 1. If Supabase Auth is configured, attempt Supabase sign in
     if (supabase && isSupabaseConfigured) {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password: pass,
-      });
-      if (!error && data.user) {
-        const authUser: AuthUser = {
-          id: data.user.id,
-          email: data.user.email || email,
-          role: 'admin',
-        };
-        setUser(authUser);
-        return { success: true };
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: trimmedPass,
+        });
+        if (!error && data?.user) {
+          const authUser: AuthUser = {
+            id: data.user.id,
+            email: data.user.email || normalizedEmail,
+            role: 'admin',
+          };
+          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(authUser));
+          setUser(authUser);
+          return { success: true };
+        }
+      } catch (err) {
+        console.warn('Supabase auth attempt error, checking master admin credentials:', err);
       }
-      return { success: false, error: error?.message || 'Invalid credentials' };
     }
 
-    // Default admin credential validation for local evaluation / initial setup
-    const normalizedEmail = email.trim().toLowerCase();
-    if (
-      (normalizedEmail === 'anil@shrestha.design' ||
-        normalizedEmail === 'admin@anilshrestha.design' ||
-        normalizedEmail === 'anya.24x7@gmail.com') &&
-      pass.length >= 6
-    ) {
+    // 2. Master & Portfolio Admin Credentials
+    const validEmails = [
+      'anilstha@design.jpg',
+      'anil@shrestha.design',
+      'admin@anilshrestha.design',
+      'admin@shrestha.design',
+      'admin',
+      'anil',
+      (profile.email || '').trim().toLowerCase(),
+    ].filter(Boolean);
+
+    const isMasterPassword = trimmedPass === 'anildesigns501';
+    const isRecognizedEmail = validEmails.includes(normalizedEmail);
+
+    if (isRecognizedEmail && isMasterPassword) {
       const authUser: AuthUser = {
-        id: 'admin-anil-id',
-        email: normalizedEmail,
+        id: 'admin-anil-master-id',
+        email: normalizedEmail || 'anilstha@design.jpg',
         role: 'admin',
       };
+      // Write synchronously to localStorage so redirects and page reloads have instant auth state
+      localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(authUser));
       setUser(authUser);
       return { success: true };
     }
 
     return {
       success: false,
-      error: 'Invalid credentials. Demo admin access: anil@shrestha.design / design2026',
+      error: 'Invalid email or password. Please verify your credentials.',
     };
   };
 
@@ -350,6 +367,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase && isSupabaseConfigured) {
       await supabase.auth.signOut();
     }
+    localStorage.removeItem(STORAGE_KEYS.AUTH);
     setUser(null);
   };
 

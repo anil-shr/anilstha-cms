@@ -13,7 +13,7 @@ export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
   const activeSocials = socialLinks.filter((s) => s.active);
 
   return (
-    <footer className="mt-20 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0c0e16] text-slate-600 dark:text-slate-400 transition-colors">
+    <footer className="mt-20 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#121212] text-slate-600 dark:text-slate-400 transition-colors">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-slate-200 dark:border-white/5">
           {/* Brand & Designer Info */}
@@ -64,6 +64,9 @@ export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
               </li>
               <li>
                 <Link to="/services" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Services</Link>
+              </li>
+              <li>
+                <Link to="/arcade" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">Games & Tools</Link>
               </li>
               <li>
                 <Link to="/resume" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors font-medium">Resume PDF View</Link>

@@ -30,13 +30,13 @@ export const ResumePage: React.FC = () => {
       resumeUrl.includes('dropbox'));
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] dark:bg-[#11141e] py-6 sm:py-10 px-4 sm:px-6 print:p-0 print:bg-white text-slate-800 dark:text-slate-200">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#121212] py-6 sm:py-10 px-4 sm:px-6 print:p-0 print:bg-white text-slate-800 dark:text-slate-200">
       
       {/* Top Action Bar (Completely Hidden on Print) */}
       <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between print:hidden">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#171b28] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 shadow-xs hover:bg-slate-50 dark:hover:bg-[#1f2334] transition-colors"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#1e1e1e] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 shadow-xs hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>← Back to Portfolio</span>
@@ -68,12 +68,12 @@ export const ResumePage: React.FC = () => {
       </div>
 
       {/* Main Resume Sheet Document (No site footer or navbar) */}
-      <div className="max-w-4xl mx-auto bg-white dark:bg-[#171b28] border border-slate-200 dark:border-white/10 p-8 sm:p-12 shadow-xl rounded-2xl print:rounded-none print:shadow-none print:border-none print:p-6 print:text-black">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 p-8 sm:p-12 shadow-xl rounded-2xl print:rounded-none print:shadow-none print:border-none print:p-6 print:text-black">
         
         {/* Header with Portrait & Identity */}
         <header className="border-b border-slate-200 dark:border-white/10 pb-6 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 print:border-slate-300">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-[#11141e] border-2 border-blue-500/20 shrink-0 print:w-16 print:h-16">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-[#121212] border-2 border-blue-500/20 shrink-0 print:w-16 print:h-16">
               <img
                 src={portraitImg}
                 alt={profile.name || 'Anil Shrestha'}
@@ -153,10 +153,10 @@ export const ResumePage: React.FC = () => {
             Design Disciplines & Software Toolkit
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#1f2333] border border-slate-200 dark:border-white/10 print:border-slate-300 print:bg-white">
-              <h4 className="font-bold text-slate-900 dark:text-white print:text-black mb-2">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10 print:border-slate-300 print:bg-white">
+              <h3 className="font-bold text-slate-900 dark:text-white print:text-black mb-2">
                 Graphic & Visual Disciplines
-              </h4>
+              </h3>
               <ul className="space-y-1.5 text-slate-700 dark:text-slate-300 print:text-black">
                 <li>• Brand Identity Systems & Logo Suites</li>
                 <li>• Packaging Design & Dieline Engineering</li>
@@ -166,10 +166,10 @@ export const ResumePage: React.FC = () => {
               </ul>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#1f2333] border border-slate-200 dark:border-white/10 print:border-slate-300 print:bg-white">
-              <h4 className="font-bold text-slate-900 dark:text-white print:text-black mb-2">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10 print:border-slate-300 print:bg-white">
+              <h3 className="font-bold text-slate-900 dark:text-white print:text-black mb-2">
                 Software & Tool Proficiencies
-              </h4>
+              </h3>
               <ul className="space-y-1.5 text-slate-700 dark:text-slate-300 print:text-black">
                 <li>• Adobe Illustrator (Vector Branding, Print Dielines)</li>
                 <li>• Adobe Photoshop (High-End Retouching, Key Visuals)</li>

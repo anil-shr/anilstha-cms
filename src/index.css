@@ -61,6 +61,26 @@
   }
 }
 
+/* Theme utility surfaces matching design system variables */
+.bg-card-theme {
+  background-color: var(--bg-card);
+}
+.bg-page-theme {
+  background-color: var(--bg-page);
+}
+.text-primary-theme {
+  color: var(--text-primary);
+}
+.text-secondary-theme {
+  color: var(--text-secondary);
+}
+.text-muted-theme {
+  color: var(--text-muted);
+}
+.border-card-theme {
+  border-color: var(--border-color);
+}
+
 /* Subtle clean grid mesh */
 .bg-hero-grid {
   background-size: 32px 32px;

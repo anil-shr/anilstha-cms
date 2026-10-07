@@ -119,7 +119,7 @@ export const ProjectDetailPage: React.FC = () => {
 
         {project.tools && project.tools.length > 0 && (
           <SpotlightCard className="p-4 space-y-1">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold block">Tech Stack</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold block">Tools & Software</span>
             <div className="flex flex-wrap gap-1 pt-1">
               {project.tools.map((t) => (
                 <span key={t} className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300">
@@ -132,14 +132,14 @@ export const ProjectDetailPage: React.FC = () => {
 
         {project.project_url && (
           <SpotlightCard className="p-4 space-y-1 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold block">Repository / Link</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold block">Live Presentation</span>
             <a
               href={project.project_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+              className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-sky-400 hover:underline font-semibold"
             >
-              <span>Visit Link</span>
+              <span>View Project</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </a>
           </SpotlightCard>
@@ -149,7 +149,7 @@ export const ProjectDetailPage: React.FC = () => {
       {/* Main Cover Visual */}
       {project.cover_image_url && (
         <SpotlightCard className="p-2 overflow-hidden">
-          <div className="rounded-lg overflow-hidden aspect-video bg-slate-100 dark:bg-slate-900">
+          <div className="rounded-xl overflow-hidden aspect-video bg-slate-100 dark:bg-slate-900">
             <img
               src={project.cover_image_url}
               alt={project.title}
@@ -162,7 +162,7 @@ export const ProjectDetailPage: React.FC = () => {
       {/* Narrative & Case Study Content */}
       <div className="space-y-6">
         <SpotlightCard className="p-6 sm:p-8 space-y-3">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Project Overview & Architecture</h2>
+          <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Project Overview & Creative Concept</h2>
           <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
             {project.fullDescription || project.description}
           </p>
@@ -170,14 +170,14 @@ export const ProjectDetailPage: React.FC = () => {
 
         {project.challenge && (
           <SpotlightCard className="p-6 sm:p-8 space-y-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Technical Challenge</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Creative Brief & Challenge</h2>
             <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{project.challenge}</p>
           </SpotlightCard>
         )}
 
         {project.solution && (
           <SpotlightCard className="p-6 sm:p-8 space-y-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Solution & Implementation</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Design Solution & Execution</h2>
             <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{project.solution}</p>
           </SpotlightCard>
         )}

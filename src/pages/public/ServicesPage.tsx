@@ -46,6 +46,7 @@ export const ServicesPage: React.FC = () => {
       </div>
 
       {/* Services Grid */}
+      <h2 className="sr-only">Available Design Capabilities</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {activeServices.map((srv) => (
           <SpotlightCard key={srv.id} className="p-6 sm:p-8 flex flex-col justify-between space-y-6">

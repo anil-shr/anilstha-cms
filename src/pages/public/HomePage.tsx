@@ -138,9 +138,9 @@ export const HomePage: React.FC = () => {
                 <Palette className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate block">
                   Graphic Design
-                </h3>
+                </span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   Branding & Print
                 </p>
@@ -153,9 +153,9 @@ export const HomePage: React.FC = () => {
                 <Layout className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate block">
                   UI/UX Design
-                </h3>
+                </span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   Web & Mobile Apps
                 </p>
@@ -168,9 +168,9 @@ export const HomePage: React.FC = () => {
                 <Layers className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate block">
                   3–5 Years
-                </h3>
+                </span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   Industry Experience
                 </p>
@@ -183,9 +183,9 @@ export const HomePage: React.FC = () => {
                 <Sparkles className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate block">
                   100+ Projects
-                </h3>
+                </span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   Delivered Globally
                 </p>

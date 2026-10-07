@@ -312,7 +312,7 @@ export const ServicesManagerPage: React.FC = () => {
                       <div className="w-6 h-6 rounded bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 p-0.5 flex items-center justify-center">
                         <img
                           src={editingService.custom_icon_url}
-                          alt="preview"
+                          alt={`${editingService.title || 'Service'} icon preview`}
                           className="w-full h-full object-contain"
                         />
                       </div>

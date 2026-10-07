@@ -57,85 +57,86 @@ export default function App() {
     }
   }, [siteSettings.ga_id, cookieConsent.analytics]);
 
-  const isAdminRoute = path.startsWith('/admin');
+  const normalizedPath = path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+  const isAdminRoute = normalizedPath.startsWith('/admin');
 
   // Render Admin application routes
   if (isAdminRoute) {
-    if (path === '/admin' || path === '/admin/login') {
+    if (normalizedPath === '/admin' || normalizedPath === '/admin/login') {
       return <AdminLoginPage />;
     }
-    if (path === '/admin/dashboard') {
+    if (normalizedPath === '/admin/dashboard') {
       return <DashboardPage />;
     }
-    if (path === '/admin/profile') {
+    if (normalizedPath === '/admin/profile') {
       return <ProfileEditorPage />;
     }
-    if (path === '/admin/projects') {
+    if (normalizedPath === '/admin/projects') {
       return <ProjectsListPage />;
     }
-    if (path === '/admin/projects/new') {
+    if (normalizedPath === '/admin/projects/new') {
       return <ProjectFormPage />;
     }
-    if (path.startsWith('/admin/projects/')) {
+    if (normalizedPath.startsWith('/admin/projects/')) {
       return <ProjectFormPage />;
     }
-    if (path === '/admin/services') {
+    if (normalizedPath === '/admin/services') {
       return <ServicesManagerPage />;
     }
-    if (path === '/admin/skills') {
+    if (normalizedPath === '/admin/skills') {
       return <SkillsManagerPage />;
     }
-    if (path === '/admin/experience') {
+    if (normalizedPath === '/admin/experience') {
       return <ExperienceManagerPage />;
     }
-    if (path === '/admin/social-links') {
+    if (normalizedPath === '/admin/social-links') {
       return <SocialLinksPage />;
     }
-    if (path === '/admin/inquiries' || path === '/admin/messages') {
+    if (normalizedPath === '/admin/inquiries' || normalizedPath === '/admin/messages') {
       return <InquiriesPage />;
     }
-    if (path === '/admin/media') {
+    if (normalizedPath === '/admin/media') {
       return <MediaLibraryPage />;
     }
-    if (path === '/admin/settings') {
+    if (normalizedPath === '/admin/settings') {
       return <SettingsPage />;
     }
-    if (path === '/admin/analytics') {
+    if (normalizedPath === '/admin/analytics') {
       return <AnalyticsDashboardPage />;
     }
     return <NotFoundPage />;
   }
 
   // Raw XML & text endpoints
-  if (path === '/sitemap.xml') {
+  if (normalizedPath === '/sitemap.xml') {
     return <SitemapPage />;
   }
-  if (path === '/robots.txt') {
+  if (normalizedPath === '/robots.txt') {
     return <RobotsPage />;
   }
-  if (path === '/resume') {
+  if (normalizedPath === '/resume') {
     return <ResumePage />;
   }
 
   // Render Public Website routes
   const renderPublicPage = () => {
-    if (path === '/') return <HomePage />;
-    if (path === '/about') return <AboutPage />;
-    if (path === '/work') return <WorkPage />;
-    if (path.startsWith('/work/')) return <ProjectDetailPage />;
-    if (path === '/services') return <ServicesPage />;
-    if (path === '/skills') return <SkillsPage />;
-    if (path === '/arcade') return <ArcadePage />;
-    if (path === '/contact') return <ContactPage />;
-    if (path === '/privacy') return <PrivacyPolicyPage />;
-    if (path === '/cookies') {
+    if (normalizedPath === '/') return <HomePage />;
+    if (normalizedPath === '/about') return <AboutPage />;
+    if (normalizedPath === '/work') return <WorkPage />;
+    if (normalizedPath.startsWith('/work/')) return <ProjectDetailPage />;
+    if (normalizedPath === '/services') return <ServicesPage />;
+    if (normalizedPath === '/skills') return <SkillsPage />;
+    if (normalizedPath === '/arcade') return <ArcadePage />;
+    if (normalizedPath === '/contact') return <ContactPage />;
+    if (normalizedPath === '/privacy') return <PrivacyPolicyPage />;
+    if (normalizedPath === '/cookies') {
       return (
         <CookiePolicyPage
           onOpenCookieSettings={() => setCookieSettingsModalOpen(true)}
         />
       );
     }
-    if (path === '/terms') return <TermsPage />;
+    if (normalizedPath === '/terms') return <TermsPage />;
     return <NotFoundPage />;
   };
 

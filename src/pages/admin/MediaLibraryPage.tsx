@@ -9,7 +9,6 @@ import {
   Check,
   AlertCircle,
   FileText,
-  Image as ImageIcon,
   ExternalLink,
 } from 'lucide-react';
 
@@ -116,20 +115,20 @@ export const MediaLibraryPage: React.FC = () => {
 
   return (
     <AdminLayout title="Media Library">
-      <div className="space-y-6">
+      <div className="space-y-6 text-left">
         {/* Upload Zone */}
-        <div className="bg-white border-2 border-dashed border-[#DEDEDA] p-8 text-center space-y-4 hover:border-[#111111] transition-colors">
-          <Upload className="w-8 h-8 text-[#888888] mx-auto" />
+        <div className="bg-white dark:bg-[#1e1e1e] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl p-8 text-center space-y-4 hover:border-blue-500 transition-colors shadow-xs">
+          <Upload className="w-8 h-8 text-blue-600 dark:text-sky-400 mx-auto" />
           <div className="space-y-1">
-            <p className="text-xs uppercase font-bold text-[#111111]">
+            <p className="text-xs uppercase font-bold text-slate-900 dark:text-white">
               Select or Drop Media Assets to Upload
             </p>
-            <p className="text-[11px] text-[#6B6B6B]">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Permitted formats: JPEG, PNG, WEBP, AVIF, SVG, PDF. Maximum size: 10MB.
             </p>
           </div>
 
-          <label className="inline-block px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-white bg-[#111111] hover:bg-[#333333] transition-colors cursor-pointer">
+          <label className="inline-block px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md shadow-blue-600/25 transition-all cursor-pointer">
             <span>Browse Storage</span>
             <input
               type="file"
@@ -142,25 +141,25 @@ export const MediaLibraryPage: React.FC = () => {
         </div>
 
         {uploadError && (
-          <div className="p-3 bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
             <span>{uploadError}</span>
           </div>
         )}
 
         {/* Media Grid */}
-        <div className="bg-white border border-[#DEDEDA] p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#DEDEDA] pb-3">
-            <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-3">
+            <h2 className="text-xs uppercase tracking-wider font-bold text-slate-900 dark:text-white">
               Uploaded Library Assets ({media.length})
             </h2>
-            <span className="text-[11px] font-mono text-[#888888]">
+            <span className="text-[11px] font-mono text-slate-400">
               Supabase Storage Bucket: portfolio-media
             </span>
           </div>
 
           {media.length === 0 ? (
-            <div className="py-12 text-center text-xs text-[#888888]">
+            <div className="py-12 text-center text-xs text-slate-400">
               No media files uploaded yet. Upload images above to insert into case studies.
             </div>
           ) : (
@@ -168,10 +167,10 @@ export const MediaLibraryPage: React.FC = () => {
               {media.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-[#F7F7F5] border border-[#DEDEDA] flex flex-col justify-between overflow-hidden group"
+                  className="bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10 rounded-xl flex flex-col justify-between overflow-hidden group shadow-xs"
                 >
                   {/* Thumbnail */}
-                  <div className="h-40 bg-[#ECECE9] overflow-hidden flex items-center justify-center relative">
+                  <div className="h-40 bg-slate-100 dark:bg-black/50 overflow-hidden flex items-center justify-center relative">
                     {item.mime_type.startsWith('image/') ? (
                       <img
                         src={item.url}
@@ -179,7 +178,7 @@ export const MediaLibraryPage: React.FC = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center text-[#6B6B6B] gap-1">
+                      <div className="flex flex-col items-center justify-center text-slate-500 gap-1">
                         <FileText className="w-8 h-8" />
                         <span className="text-[10px] uppercase font-mono">PDF Document</span>
                       </div>
@@ -188,19 +187,19 @@ export const MediaLibraryPage: React.FC = () => {
 
                   {/* Metadata & Actions */}
                   <div className="p-3 space-y-2 text-[11px]">
-                    <p className="font-bold text-[#111111] truncate" title={item.filename}>
+                    <p className="font-bold text-slate-900 dark:text-white truncate" title={item.filename}>
                       {item.filename}
                     </p>
-                    <div className="flex items-center justify-between text-[#888888] font-mono text-[10px]">
+                    <div className="flex items-center justify-between text-slate-400 font-mono text-[10px]">
                       <span>{formatFileSize(item.file_size)}</span>
                       <span>{item.dimensions || 'N/A'}</span>
                     </div>
 
-                    <div className="pt-2 border-t border-[#EAEAE6] flex items-center justify-between">
+                    <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
                       <button
                         type="button"
                         onClick={() => handleCopyUrl(item)}
-                        className="text-[#111111] hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-blue-600 dark:text-sky-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
                         title="Copy asset URL"
                       >
                         {copiedId === item.id ? (
@@ -221,7 +220,7 @@ export const MediaLibraryPage: React.FC = () => {
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1 text-[#6B6B6B] hover:text-[#111111]"
+                          className="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white"
                           title="Open asset"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -229,7 +228,7 @@ export const MediaLibraryPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setDeleteConfirmItem(item)}
-                          className="p-1 text-red-600 hover:text-red-800 cursor-pointer"
+                          className="p-1 text-red-600 hover:text-red-700 cursor-pointer"
                           title="Delete asset"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -249,20 +248,20 @@ export const MediaLibraryPage: React.FC = () => {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 text-left"
         >
-          <div className="bg-white border border-[#DEDEDA] p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 className="text-sm font-bold uppercase tracking-tight text-[#111111]">
+          <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 className="text-sm font-bold uppercase tracking-tight text-slate-900 dark:text-white">
               Delete Media Asset?
             </h3>
-            <p className="text-xs text-[#555555] leading-relaxed">
-              Are you sure you want to delete <strong className="text-[#111111]">{deleteConfirmItem.filename}</strong>? Any projects referencing this URL will no longer be able to load this image.
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Are you sure you want to delete <strong className="text-slate-900 dark:text-white">{deleteConfirmItem.filename}</strong>? Any projects referencing this URL will no longer be able to load this image.
             </p>
             <div className="pt-2 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setDeleteConfirmItem(null)}
-                className="px-3 py-1.5 text-xs text-[#6B6B6B] hover:text-[#111111]"
+                className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
               >
                 Cancel
               </button>
@@ -272,7 +271,7 @@ export const MediaLibraryPage: React.FC = () => {
                   deleteMediaItem(deleteConfirmItem.id);
                   setDeleteConfirmItem(null);
                 }}
-                className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white bg-red-600 hover:bg-red-700 transition-colors"
+                className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
               >
                 Delete Asset
               </button>

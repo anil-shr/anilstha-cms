@@ -41,7 +41,7 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({
       ref={divRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`relative overflow-hidden rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200/90 dark:border-white/10 transition-colors duration-150 hover:border-blue-500/40 dark:hover:border-sky-400/30 hover:shadow-md ${className}`}
+      className={`relative overflow-hidden rounded-2xl bg-card-theme border border-card-theme text-primary-theme transition-colors duration-150 hover:border-blue-500/40 dark:hover:border-sky-400/30 hover:shadow-md ${className}`}
       {...props}
     >
       {/* Interactive cursor-tracking spotlight glow */}

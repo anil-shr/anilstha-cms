@@ -14,26 +14,45 @@ const RouterContext = createContext<RouterContextType>({
 
 export const useRouter = () => useContext(RouterContext);
 
+// Normalize path: clean query params, hashes, and remove trailing slash (except root '/')
+export const normalizePath = (rawPath: string): string => {
+  if (!rawPath) return '/';
+  const clean = rawPath.split('?')[0].split('#')[0];
+  const trimmed = clean.replace(/\/+$/, '');
+  return trimmed === '' ? '/' : trimmed;
+};
+
 export const RouterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [path, setPath] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return window.location.pathname || '/';
+  const getInitialPath = (): string => {
+    if (typeof window === 'undefined') return '/';
+    // Support hash fallback (e.g. /#/admin) if host doesn't support SPA rewrite
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#/')) {
+      return normalizePath(hash.slice(1));
     }
-    return '/';
-  });
+    return normalizePath(window.location.pathname);
+  };
+
+  const [path, setPath] = useState<string>(getInitialPath);
 
   useEffect(() => {
     const handlePopState = () => {
-      setPath(window.location.pathname || '/');
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#/')) {
+        setPath(normalizePath(hash.slice(1)));
+      } else {
+        setPath(normalizePath(window.location.pathname));
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const navigate = (to: string) => {
-    if (to === path) return;
-    window.history.pushState({}, '', to);
-    setPath(to);
+    const normalizedTo = normalizePath(to);
+    if (normalizedTo === path) return;
+    window.history.pushState({}, '', normalizedTo);
+    setPath(normalizedTo);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -68,10 +87,11 @@ export const Link: React.FC<{
   [key: string]: any;
 }> = ({ to, children, className = '', activeClassName = '', onClick, ...props }) => {
   const { path, navigate } = useRouter();
-  const isActive = path === to || (to !== '/' && path.startsWith(to));
+  const normalizedTo = normalizePath(to);
+  const isActive = path === normalizedTo || (normalizedTo !== '/' && path.startsWith(normalizedTo));
 
   const handleClick = (e: React.MouseEvent) => {
-    if (e.metaKey || e.ctrlKey) return; // Allow opening in new tab
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // Allow opening in new tab
     e.preventDefault();
     if (onClick) onClick();
     navigate(to);

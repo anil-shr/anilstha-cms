@@ -64,7 +64,7 @@ export const CookieBanner: React.FC<{
         <div
           role="region"
           aria-label="Cookie and Privacy Consent"
-          className="fixed bottom-0 left-0 right-0 z-50 bg-[#090d16]/95 backdrop-blur-xl text-slate-200 border-t border-white/10 px-6 py-4 shadow-2xl transition-transform"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-[#121212]/95 backdrop-blur-xl text-slate-200 border-t border-white/10 px-6 py-4 shadow-2xl transition-transform"
         >
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
             <div className="text-xs text-slate-400 leading-relaxed max-w-2xl">
@@ -107,7 +107,7 @@ export const CookieBanner: React.FC<{
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
         >
-          <div className="bg-[#0b0f19] text-slate-200 max-w-lg w-full p-6 md:p-8 rounded-2xl border border-white/10 shadow-2xl relative">
+          <div className="bg-[#1e1e1e] text-slate-200 max-w-lg w-full p-6 md:p-8 rounded-2xl border border-white/10 shadow-2xl relative text-left">
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
               <h2 id="cookie-modal-title" className="text-base font-bold text-white tracking-tight">
                 Cookie Preferences

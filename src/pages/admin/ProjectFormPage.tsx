@@ -1,54 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { useRouter, Link } from '../../lib/router';
 import { useData } from '../../context/DataContext';
+import { useRouter, Link } from '../../lib/router';
 import { Project } from '../../types/database';
 import {
   ArrowLeft,
   Check,
   AlertCircle,
-  Plus,
   X,
   RefreshCw,
-  Image as ImageIcon,
+  Plus,
 } from 'lucide-react';
 
-export const ProjectFormPage: React.FC = () => {
-  const { params, navigate } = useRouter();
+export const ProjectFormPage: React.FC<{ projectId?: string }> = ({ projectId }) => {
   const { projects, saveProject, media } = useData();
+  const { navigate } = useRouter();
 
-  const isEdit = Boolean(params.id);
-  const existingProject = isEdit ? projects.find((p) => p.id === params.id) : null;
+  const isEdit = Boolean(projectId && projectId !== 'new');
+  const existingProject = isEdit ? projects.find((p) => p.id === projectId) : null;
 
-  const [formData, setFormData] = useState<Project>(() => {
-    if (existingProject) return existingProject;
-    return {
-      id: 'proj-' + Date.now(),
-      title: '',
-      slug: '',
-      category: 'Brand Identity',
-      description: '',
-      year: new Date().getFullYear().toString(),
-      client: '',
-      role: 'Lead Graphic Designer',
-      services: ['Brand Identity', 'Typography System'],
-      tools: ['Adobe Illustrator', 'Adobe InDesign'],
-      challenge: '',
-      solution: '',
-      result: '',
-      cover_image_url: '',
-      gallery_urls: [],
-      project_url: '',
-      featured: false,
-      published: true,
-      sort_order: projects.length + 1,
-      seo_title: '',
-      seo_description: '',
-      og_image_url: '',
-      alt_text: '',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+  const [formData, setFormData] = useState<Project>({
+    id: projectId && projectId !== 'new' ? projectId : 'proj-' + Date.now(),
+    title: '',
+    slug: '',
+    category: 'Brand Identity',
+    year: '2026',
+    client: '',
+    description: '',
+    cover_image_url: '/src/assets/images/project_himalayan_crafts.png',
+    alt_text: '',
+    gallery_urls: [],
+    challenge: '',
+    solution: '',
+    result: '',
+    services: ['Brand Identity'],
+    tools: ['Adobe Illustrator'],
+    featured: false,
+    published: true,
+    sort_order: projects.length + 1,
+    seo_title: '',
+    seo_description: '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   });
 
   const [isDirty, setIsDirty] = useState(false);
@@ -56,7 +49,6 @@ export const ProjectFormPage: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // New tag inputs
   const [newService, setNewService] = useState('');
   const [newTool, setNewTool] = useState('');
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
@@ -68,55 +60,55 @@ export const ProjectFormPage: React.FC = () => {
     }
   }, [existingProject]);
 
-  // Unsaved changes browser prompt
+  // Unsaved changes browser warning
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault();
-        e.returnValue = 'You have unsaved changes to this project.';
+        e.returnValue = 'You have unsaved project changes.';
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
-  // Helper to slugify title
   const generateSlug = (title: string) => {
     return title
       .toLowerCase()
       .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const titleVal = e.target.value;
-    setIsDirty(true);
-    setSaveSuccess(false);
-    if (!isEdit || !formData.slug) {
-      setFormData({
-        ...formData,
-        title: titleVal,
-        slug: generateSlug(titleVal),
-      });
-    } else {
-      setFormData({ ...formData, title: titleVal });
-    }
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
+    const { name, value, type } = e.target;
     setIsDirty(true);
     setSaveSuccess(false);
-    const target = e.target;
-    const value =
-      target.type === 'checkbox' ? (target as HTMLInputElement).checked : target.value;
-    setFormData({
-      ...formData,
-      [target.name]: value,
-    });
+
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData({ ...formData, [name]: checked });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setIsDirty(true);
+    setSaveSuccess(false);
+    if (!isEdit && (!formData.slug || formData.slug === generateSlug(formData.title))) {
+      setFormData({
+        ...formData,
+        title: newTitle,
+        slug: generateSlug(newTitle),
+      });
+    } else {
+      setFormData({ ...formData, title: newTitle });
+    }
   };
 
   const handleAddService = () => {
@@ -124,7 +116,7 @@ export const ProjectFormPage: React.FC = () => {
     setIsDirty(true);
     setFormData({
       ...formData,
-      services: [...(formData.services || []), newService.trim()],
+      services: [...formData.services, newService.trim()],
     });
     setNewService('');
   };
@@ -142,7 +134,7 @@ export const ProjectFormPage: React.FC = () => {
     setIsDirty(true);
     setFormData({
       ...formData,
-      tools: [...(formData.tools || []), newTool.trim()],
+      tools: [...formData.tools, newTool.trim()],
     });
     setNewTool('');
   };
@@ -228,7 +220,7 @@ export const ProjectFormPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <Link
             to="/admin/projects"
-            className="px-3 py-1.5 text-xs text-[#6B6B6B] hover:text-[#111111] inline-flex items-center gap-1"
+            className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white inline-flex items-center gap-1 rounded-lg"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Cancel</span>
@@ -237,47 +229,47 @@ export const ProjectFormPage: React.FC = () => {
             type="submit"
             form="project-form"
             disabled={saving}
-            className="px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-[#111111] hover:bg-[#333333] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+            className="px-5 py-2 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md shadow-blue-600/25 transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
           >
             {saving ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
             ) : saveSuccess ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3.5 h-3.5 text-white" />
             ) : null}
             <span>{saving ? 'Saving...' : saveSuccess ? 'Saved ✓' : 'Save Project'}</span>
           </button>
         </div>
       }
     >
-      <form id="project-form" onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
+      <form id="project-form" onSubmit={handleSubmit} className="space-y-8 max-w-4xl text-left">
         {errorMessage && (
-          <div className="p-4 bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         {saveSuccess && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-            <Check className="w-4 h-4 shrink-0" />
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+            <Check className="w-4 h-4 shrink-0 text-emerald-500" />
             <span>Project changes saved and synced to the portfolio.</span>
           </div>
         )}
 
         {/* 1. Core Metadata */}
-        <div className="bg-white border border-[#DEDEDA] p-6 space-y-6">
-          <div className="border-b border-[#DEDEDA] pb-3">
-            <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 space-y-6 shadow-xs">
+          <div className="border-b border-slate-100 dark:border-white/10 pb-3">
+            <h2 className="text-xs uppercase tracking-wider font-bold text-slate-900 dark:text-white">
               1. Title & URL Slug
             </h2>
-            <p className="text-[11px] text-[#6B6B6B]">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Defines the project identifier and SEO-friendly permalink.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Project Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -286,12 +278,12 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.title}
                 onChange={handleTitleChange}
                 placeholder="e.g. Himalayan Heritage Crafts"
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none font-bold text-sm"
+                className="w-full px-3.5 py-2.5 text-sm font-bold bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 URL Slug (/work/[slug]) <span className="text-red-500">*</span>
               </label>
               <input
@@ -301,19 +293,19 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.slug}
                 onChange={handleChange}
                 placeholder="himalayan-heritage-crafts"
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none font-mono"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none font-mono"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Category
               </label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
               >
                 <option value="Brand Identity">Brand Identity</option>
                 <option value="Poster & Visual Communication">Poster & Visual Communication</option>
@@ -324,7 +316,7 @@ export const ProjectFormPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Year
               </label>
               <input
@@ -333,12 +325,12 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.year}
                 onChange={handleChange}
                 placeholder="2026"
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none font-mono"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none font-mono"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Client (Optional)
               </label>
               <input
@@ -347,12 +339,12 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.client || ''}
                 onChange={handleChange}
                 placeholder="e.g. Kathmandu Jazz Collective"
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
               />
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Short Description / Overview
               </label>
               <textarea
@@ -362,26 +354,26 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Concise overview of the project brief and design intent..."
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none resize-y"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none resize-y"
               />
             </div>
           </div>
         </div>
 
         {/* 2. Visual Media: Cover & Gallery */}
-        <div className="bg-white border border-[#DEDEDA] p-6 space-y-6">
-          <div className="border-b border-[#DEDEDA] pb-3">
-            <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 space-y-6 shadow-xs">
+          <div className="border-b border-slate-100 dark:border-white/10 pb-3">
+            <h2 className="text-xs uppercase tracking-wider font-bold text-slate-900 dark:text-white">
               2. Cover Image & Gallery
             </h2>
-            <p className="text-[11px] text-[#6B6B6B]">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Enter direct image paths or select from your uploaded media library.
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Cover Image URL
               </label>
               <input
@@ -390,10 +382,10 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.cover_image_url}
                 onChange={handleChange}
                 placeholder="/src/assets/images/... or https://..."
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none font-mono"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none font-mono"
               />
               {media.length > 0 && (
-                <div className="pt-1 flex flex-wrap items-center gap-2 text-[11px] text-[#6B6B6B]">
+                <div className="pt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
                   <span>Insert from Media Library:</span>
                   {media.slice(0, 4).map((m) => (
                     <button
@@ -403,7 +395,7 @@ export const ProjectFormPage: React.FC = () => {
                         setIsDirty(true);
                         setFormData({ ...formData, cover_image_url: m.url });
                       }}
-                      className="underline hover:text-[#111111]"
+                      className="text-blue-600 dark:text-sky-400 underline hover:no-underline cursor-pointer"
                     >
                       {m.filename}
                     </button>
@@ -413,7 +405,7 @@ export const ProjectFormPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Cover Image Alt Text
               </label>
               <input
@@ -422,13 +414,13 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.alt_text || ''}
                 onChange={handleChange}
                 placeholder="Descriptive explanation for accessibility"
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
               />
             </div>
 
             {/* Gallery URLs */}
-            <div className="pt-4 border-t border-[#EAEAE6] space-y-3">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+            <div className="pt-4 border-t border-slate-100 dark:border-white/10 space-y-3">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Additional Gallery Presentation Plates
               </label>
 
@@ -438,12 +430,12 @@ export const ProjectFormPage: React.FC = () => {
                   value={newGalleryUrl}
                   onChange={(e) => setNewGalleryUrl(e.target.value)}
                   placeholder="Paste image URL..."
-                  className="flex-1 px-3 py-1.5 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none font-mono"
+                  className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none font-mono"
                 />
                 <button
                   type="button"
                   onClick={handleAddGalleryImage}
-                  className="px-3 py-1.5 text-xs font-semibold uppercase text-white bg-[#111111] hover:bg-[#333333]"
+                  className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs cursor-pointer"
                 >
                   Add Image
                 </button>
@@ -454,13 +446,13 @@ export const ProjectFormPage: React.FC = () => {
                   {formData.gallery_urls.map((url, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-2 bg-[#F7F7F5] border border-[#DEDEDA] text-xs font-mono"
+                      className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono"
                     >
-                      <span className="truncate max-w-lg">{url}</span>
+                      <span className="truncate max-w-lg text-slate-800 dark:text-slate-200">{url}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveGalleryImage(idx)}
-                        className="text-red-500 hover:text-red-700 p-1"
+                        className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -473,19 +465,19 @@ export const ProjectFormPage: React.FC = () => {
         </div>
 
         {/* 3. Narrative Breakdown (Challenge, Solution, Result) */}
-        <div className="bg-white border border-[#DEDEDA] p-6 space-y-6">
-          <div className="border-b border-[#DEDEDA] pb-3">
-            <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 space-y-6 shadow-xs">
+          <div className="border-b border-slate-100 dark:border-white/10 pb-3">
+            <h2 className="text-xs uppercase tracking-wider font-bold text-slate-900 dark:text-white">
               3. Case Study Narrative
             </h2>
-            <p className="text-[11px] text-[#6B6B6B]">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Only non-empty fields will be displayed on the project page.
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 The Challenge
               </label>
               <textarea
@@ -494,12 +486,12 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.challenge || ''}
                 onChange={handleChange}
                 placeholder="What was the problem or communication constraint?"
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none resize-y"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none resize-y"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Design Solution
               </label>
               <textarea
@@ -508,12 +500,12 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.solution || ''}
                 onChange={handleChange}
                 placeholder="How did you resolve it through typography, form, and substrate?"
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none resize-y"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none resize-y"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Outcome & Impact (Optional)
               </label>
               <textarea
@@ -522,16 +514,16 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.result || ''}
                 onChange={handleChange}
                 placeholder="Exhibition response, print run, or client deliverable status..."
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none resize-y"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none resize-y"
               />
             </div>
           </div>
         </div>
 
         {/* 4. Services, Tools & External Link */}
-        <div className="bg-white border border-[#DEDEDA] p-6 space-y-6">
-          <div className="border-b border-[#DEDEDA] pb-3">
-            <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 space-y-6 shadow-xs">
+          <div className="border-b border-slate-100 dark:border-white/10 pb-3">
+            <h2 className="text-xs uppercase tracking-wider font-bold text-slate-900 dark:text-white">
               4. Deliverables & Tools
             </h2>
           </div>
@@ -539,7 +531,7 @@ export const ProjectFormPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Services Tags */}
             <div className="space-y-3">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Services Provided
               </label>
               <div className="flex gap-2">
@@ -548,12 +540,12 @@ export const ProjectFormPage: React.FC = () => {
                   value={newService}
                   onChange={(e) => setNewService(e.target.value)}
                   placeholder="e.g. Packaging Design"
-                  className="flex-1 px-3 py-1.5 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none"
+                  className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleAddService}
-                  className="px-3 py-1.5 text-xs font-semibold uppercase text-white bg-[#111111]"
+                  className="px-3.5 py-2 text-xs font-bold uppercase text-white bg-blue-600 hover:bg-blue-500 rounded-xl cursor-pointer"
                 >
                   Add
                 </button>
@@ -562,13 +554,13 @@ export const ProjectFormPage: React.FC = () => {
                 {formData.services.map((srv, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs bg-[#F7F7F5] border border-[#DEDEDA] text-[#111111]"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-lg"
                   >
                     <span>{srv}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveService(idx)}
-                      className="text-[#888888] hover:text-red-600"
+                      className="text-slate-400 hover:text-red-600 cursor-pointer"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -579,7 +571,7 @@ export const ProjectFormPage: React.FC = () => {
 
             {/* Tools Tags */}
             <div className="space-y-3">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Tools Used
               </label>
               <div className="flex gap-2">
@@ -588,12 +580,12 @@ export const ProjectFormPage: React.FC = () => {
                   value={newTool}
                   onChange={(e) => setNewTool(e.target.value)}
                   placeholder="e.g. Adobe InDesign"
-                  className="flex-1 px-3 py-1.5 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none"
+                  className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleAddTool}
-                  className="px-3 py-1.5 text-xs font-semibold uppercase text-white bg-[#111111]"
+                  className="px-3.5 py-2 text-xs font-bold uppercase text-white bg-blue-600 hover:bg-blue-500 rounded-xl cursor-pointer"
                 >
                   Add
                 </button>
@@ -602,13 +594,13 @@ export const ProjectFormPage: React.FC = () => {
                 {formData.tools.map((tl, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs bg-[#F7F7F5] border border-[#DEDEDA] text-[#111111]"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-lg"
                   >
                     <span>{tl}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveTool(idx)}
-                      className="text-[#888888] hover:text-red-600"
+                      className="text-slate-400 hover:text-red-600 cursor-pointer"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -618,7 +610,7 @@ export const ProjectFormPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                 Live External URL (Optional)
               </label>
               <input
@@ -627,16 +619,16 @@ export const ProjectFormPage: React.FC = () => {
                 value={formData.project_url || ''}
                 onChange={handleChange}
                 placeholder="https://..."
-                className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none font-mono"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none font-mono"
               />
             </div>
           </div>
         </div>
 
         {/* 5. Publishing Status & SEO */}
-        <div className="bg-white border border-[#DEDEDA] p-6 space-y-6">
-          <div className="border-b border-[#DEDEDA] pb-3">
-            <h2 className="text-xs uppercase tracking-wider font-bold text-[#111111]">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 space-y-6 shadow-xs">
+          <div className="border-b border-slate-100 dark:border-white/10 pb-3">
+            <h2 className="text-xs uppercase tracking-wider font-bold text-slate-900 dark:text-white">
               5. Publishing & SEO Tags
             </h2>
           </div>
@@ -649,9 +641,9 @@ export const ProjectFormPage: React.FC = () => {
                   name="published"
                   checked={formData.published}
                   onChange={handleChange}
-                  className="w-4 h-4 accent-[#111111]"
+                  className="w-4 h-4 rounded text-blue-600"
                 />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                   Published (Visible to public visitors)
                 </span>
               </label>
@@ -662,9 +654,9 @@ export const ProjectFormPage: React.FC = () => {
                   name="featured"
                   checked={formData.featured}
                   onChange={handleChange}
-                  className="w-4 h-4 accent-[#111111]"
+                  className="w-4 h-4 rounded text-blue-600"
                 />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                   Feature on Homepage Grid
                 </span>
               </label>
@@ -672,7 +664,7 @@ export const ProjectFormPage: React.FC = () => {
 
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+                <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                   SEO Custom Title
                 </label>
                 <input
@@ -681,12 +673,12 @@ export const ProjectFormPage: React.FC = () => {
                   value={formData.seo_title || ''}
                   onChange={handleChange}
                   placeholder="Defaults to Project Title — Anil Shrestha"
-                  className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs uppercase tracking-wider font-semibold text-[#111111] block">
+                <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
                   SEO Description
                 </label>
                 <input
@@ -695,7 +687,7 @@ export const ProjectFormPage: React.FC = () => {
                   value={formData.seo_description || ''}
                   onChange={handleChange}
                   placeholder="Defaults to project description"
-                  className="w-full px-3 py-2 text-xs bg-[#F7F7F5] border border-[#DEDEDA] focus:border-[#111111] focus:outline-none"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -705,14 +697,14 @@ export const ProjectFormPage: React.FC = () => {
         <div className="pt-4 flex items-center justify-end gap-3">
           <Link
             to="/admin/projects"
-            className="px-4 py-2 text-xs text-[#6B6B6B] hover:text-[#111111]"
+            className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={saving}
-            className="px-8 py-3 text-xs font-semibold uppercase tracking-wider text-white bg-[#111111] hover:bg-[#333333] transition-colors cursor-pointer"
+            className="px-8 py-3 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md shadow-blue-600/25 transition-all cursor-pointer"
           >
             {saving ? 'Saving...' : 'Save Project'}
           </button>

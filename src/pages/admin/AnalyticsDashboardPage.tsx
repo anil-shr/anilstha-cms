@@ -1,11 +1,10 @@
 import React from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { useData } from '../../context/DataContext';
-import { Link } from '../../lib/router';
-import { BarChart3, ExternalLink, ShieldCheck, Activity, Eye, FileDown } from 'lucide-react';
+import { BarChart3, ExternalLink, ShieldCheck } from 'lucide-react';
 
 export const AnalyticsDashboardPage: React.FC = () => {
-  const { siteSettings, cookieConsent } = useData();
+  const { siteSettings } = useData();
 
   const gaId =
     siteSettings.ga_id ||
@@ -54,28 +53,28 @@ export const AnalyticsDashboardPage: React.FC = () => {
 
   return (
     <AdminLayout title="Analytics & Telemetry">
-      <div className="space-y-8 max-w-5xl">
+      <div className="space-y-8 max-w-5xl text-left">
         {/* Status Banner */}
-        <div className="bg-white border border-[#DEDEDA] p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-[#111111]" />
-              <h2 className="text-sm font-bold uppercase tracking-tight text-[#111111]">
+              <BarChart3 className="w-5 h-5 text-blue-600 dark:text-sky-400" />
+              <h2 className="text-sm font-bold uppercase tracking-tight text-slate-900 dark:text-white">
                 Google Analytics 4 Engine
               </h2>
             </div>
-            <p className="text-xs text-[#555555] max-w-xl leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xl leading-relaxed">
               In accordance with engineering standards, this system will not display synthetic or fabricated traffic graphs. Direct operational analytics are routed securely to your Google Analytics 4 property under Google Consent Mode.
             </p>
             <div className="pt-1 flex items-center gap-3 text-xs">
-              <span className="font-mono text-[#111111]">
+              <span className="font-mono text-slate-900 dark:text-white">
                 Measurement ID: {gaId ? gaId : 'Not configured yet'}
               </span>
               <span
-                className={`text-[10px] font-mono px-2 py-0.5 border ${
+                className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${
                   gaId
-                    ? 'border-emerald-300 text-emerald-800 bg-emerald-50'
-                    : 'border-neutral-200 text-neutral-600 bg-neutral-50'
+                    ? 'border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40'
+                    : 'border-slate-200 dark:border-white/10 text-slate-500 bg-slate-50 dark:bg-white/5'
                 }`}
               >
                 {gaId ? 'Active & Ready' : 'Pending Key in Settings'}
@@ -88,7 +87,7 @@ export const AnalyticsDashboardPage: React.FC = () => {
               href="https://analytics.google.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-white bg-[#111111] hover:bg-[#333333] transition-colors inline-flex items-center gap-2"
+              className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md shadow-blue-600/25 transition-all inline-flex items-center gap-2 cursor-pointer"
             >
               <span>Open GA4 Console</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -97,32 +96,32 @@ export const AnalyticsDashboardPage: React.FC = () => {
         </div>
 
         {/* Privacy & Consent Mode Verification */}
-        <div className="bg-white border border-[#DEDEDA] p-6 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-700">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="w-4 h-4" />
             <h3 className="text-xs uppercase tracking-wider font-bold">
               Privacy Architecture & Consent Verification
             </h3>
           </div>
-          <p className="text-xs text-[#555555] leading-relaxed">
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
             Analytics scripts remain entirely inactive until a visitor explicitly selects "Accept All" or enables Analytics in the Cookie Settings banner. When permitted, cookies like <code>_ga</code> collect anonymous aggregate traffic patterns without logging IP addresses or inquiry contents.
           </p>
         </div>
 
         {/* Event Taxonomy Specification */}
-        <div className="bg-white border border-[#DEDEDA] overflow-hidden">
-          <div className="p-4 bg-[#F7F7F5] border-b border-[#DEDEDA] flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider font-bold text-[#111111]">
+        <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-xs">
+          <div className="p-4 bg-slate-50 dark:bg-[#121212] border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wider font-bold text-slate-900 dark:text-white">
               Registered Telemetry Event Schema
             </span>
-            <span className="text-[11px] font-mono text-[#888888]">
+            <span className="text-[11px] font-mono text-slate-400">
               {trackedEvents.length} Core Events
             </span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#DEDEDA] text-[#6B6B6B] uppercase font-semibold text-[10px]">
+              <thead className="border-b border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Event Name</th>
                   <th className="py-3 px-4">Trigger Condition</th>
@@ -130,17 +129,17 @@ export const AnalyticsDashboardPage: React.FC = () => {
                   <th className="py-3 px-4">Privacy Guard</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#EAEAE6]">
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                 {trackedEvents.map((evt) => (
-                  <tr key={evt.name} className="hover:bg-[#FAFAFA]">
-                    <td className="py-3 px-4 font-mono font-bold text-[#111111]">
+                  <tr key={evt.name} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02]">
+                    <td className="py-3 px-4 font-mono font-bold text-blue-600 dark:text-sky-400">
                       {evt.name}
                     </td>
-                    <td className="py-3 px-4 text-[#444444]">{evt.trigger}</td>
-                    <td className="py-3 px-4 font-mono text-[#666666] text-[11px]">
+                    <td className="py-3 px-4 text-slate-800 dark:text-slate-200">{evt.trigger}</td>
+                    <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 text-[11px]">
                       {evt.parameters}
                     </td>
-                    <td className="py-3 px-4 text-[#777777] text-[11px]">{evt.privacy}</td>
+                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400 text-[11px]">{evt.privacy}</td>
                   </tr>
                 ))}
               </tbody>

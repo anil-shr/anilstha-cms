@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { updateSEO } from '../../lib/seo';
 import { trackEvent } from '../../lib/analytics';
+import { Link } from '../../lib/router';
 import { SpotlightCard } from '../../components/public/SpotlightCard';
 import {
   Send,
@@ -12,6 +13,8 @@ import {
   Clock,
   ArrowUpRight,
   MessageSquare,
+  ShieldCheck,
+  Lock,
 } from 'lucide-react';
 
 export const ContactPage: React.FC = () => {
@@ -20,7 +23,7 @@ export const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    service: 'Brand Identity & Graphic Design',
+    service: 'Brand Identity & Logo Design',
     subject: '',
     timeline: 'Flexible',
     message: '',
@@ -81,7 +84,7 @@ export const ContactPage: React.FC = () => {
       setFormData({
         name: '',
         email: '',
-        service: 'Full Stack Web Development',
+        service: 'Brand Identity & Logo Design',
         subject: '',
         timeline: 'Flexible',
         message: '',
@@ -95,18 +98,18 @@ export const ContactPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen py-10 md:py-16 px-4 md:px-8 max-w-7xl mx-auto space-y-12">
+    <div className="min-h-screen py-10 md:py-16 px-4 md:px-8 max-w-7xl mx-auto space-y-12 text-left">
       {/* Header */}
       <div className="max-w-3xl space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-blue-400 text-xs font-mono font-semibold">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-sky-400 text-xs font-mono font-semibold">
           <MessageSquare className="w-3.5 h-3.5" />
           <span>Contact</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
           Let's Start a Conversation
         </h1>
-        <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-          Have an upcoming project, freelance inquiry, or job opportunity? Send a message and I'll respond within 24–48 hours.
+        <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+          Have an upcoming design project, brand inquiry, or job opportunity? Send a message and I'll respond within 24–48 hours.
         </p>
       </div>
 
@@ -114,7 +117,15 @@ export const ContactPage: React.FC = () => {
         {/* Form Column */}
         <div className="lg:col-span-7">
           <SpotlightCard className="p-6 sm:p-8 space-y-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Send a Direct Message</h2>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                Send a Direct Message
+              </h2>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <Lock className="w-3 h-3 text-emerald-500" />
+                <span>Private & Encrypted</span>
+              </span>
+            </div>
 
             {success ? (
               <div className="p-6 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 space-y-2 text-center">
@@ -126,7 +137,7 @@ export const ContactPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSuccess(false)}
-                  className="mt-3 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold cursor-pointer"
+                  className="mt-3 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer"
                 >
                   Send Another Message
                 </button>
@@ -152,95 +163,126 @@ export const ContactPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Your Name *</label>
+                    <label htmlFor="contact-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Your Name *
+                    </label>
                     <input
+                      id="contact-name"
                       type="text"
                       name="name"
                       required
-                      placeholder="Jane Doe"
+                      placeholder="e.g. Jane Doe"
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#0f172a] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:border-blue-500 placeholder:text-slate-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#121212] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 placeholder:text-slate-400"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Your Email *</label>
+                    <label htmlFor="contact-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Your Email *
+                    </label>
                     <input
+                      id="contact-email"
                       type="email"
                       name="email"
                       required
-                      placeholder="jane@example.com"
+                      placeholder="jane@company.com"
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#0f172a] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:border-blue-500 placeholder:text-slate-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#121212] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Service Interest</label>
+                    <label htmlFor="contact-service" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Service Interest
+                    </label>
                     <select
+                      id="contact-service"
                       name="service"
                       value={formData.service}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#0f172a] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#121212] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
                     >
-                      <option value="Full Stack Web Development">Full Stack Web Development</option>
-                      <option value="Frontend Development">Frontend Development</option>
-                      <option value="UI/UX & Prototyping">UI/UX & Prototyping</option>
-                      <option value="Other Consultation">Other Consultation</option>
+                      <option value="Brand Identity & Logo Design">Brand Identity & Logo Design</option>
+                      <option value="Packaging & Dieline Production">Packaging & Dieline Production</option>
+                      <option value="UI/UX & Mobile Interface Design">UI/UX & Mobile Interface Design</option>
+                      <option value="Editorial, Poster & Print Collateral">Editorial, Poster & Print Collateral</option>
+                      <option value="Other Design Consultation">Other Design Consultation</option>
                     </select>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Timeline</label>
+                    <label htmlFor="contact-timeline" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Estimated Timeline
+                    </label>
                     <select
+                      id="contact-timeline"
                       name="timeline"
                       value={formData.timeline}
                       onChange={handleChange}
-                      className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#0f172a] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#121212] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
                     >
                       <option value="Immediate (1–2 weeks)">Immediate (1–2 weeks)</option>
                       <option value="Within 1 month">Within 1 month</option>
+                      <option value="Within 2–3 months">Within 2–3 months</option>
                       <option value="Flexible">Flexible</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Subject</label>
+                  <label htmlFor="contact-subject" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Subject Line
+                  </label>
                   <input
+                    id="contact-subject"
                     type="text"
                     name="subject"
-                    placeholder="Project Inquiry / Job Opportunity"
+                    placeholder="e.g. Brand Identity Overhaul for Kathmandu Cafe"
                     value={formData.subject}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#0f172a] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:border-blue-500 placeholder:text-slate-400"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#121212] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 placeholder:text-slate-400"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Message *</label>
+                  <label htmlFor="contact-message" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Message Details *
+                  </label>
                   <textarea
+                    id="contact-message"
                     name="message"
                     required
                     rows={5}
-                    placeholder="Describe your project, timeline, and requirements..."
+                    placeholder="Describe your design needs, deliverables, budget range, and any existing references..."
                     value={formData.message}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-white dark:bg-[#0f172a] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:border-blue-500 placeholder:text-slate-400 resize-y"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#121212] text-xs text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 placeholder:text-slate-400 resize-y"
                   />
+                </div>
+
+                {/* Privacy Notice */}
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Privacy Commitment:</strong> We only collect your name, email, and message to reply to your inquiry. We never share or sell personal data. Read our{' '}
+                    <Link to="/privacy" className="text-blue-600 dark:text-sky-400 underline font-medium">
+                      Privacy Policy
+                    </Link>.
+                  </span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-blue-600/25 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>{submitting ? 'Sending...' : 'Send Message'}</span>
+                  <span>{submitting ? 'Transmitting...' : 'Send Inquiry'}</span>
                 </button>
               </form>
             )}
@@ -250,30 +292,30 @@ export const ContactPage: React.FC = () => {
         {/* Sidebar Info */}
         <div className="lg:col-span-5 space-y-6">
           <SpotlightCard className="p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Contact Details</h3>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Studio Details</h2>
             <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5">
-                <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-white/10">
+                <Mail className="w-4 h-4 text-blue-600 dark:text-sky-400 shrink-0" />
                 <div>
-                  <span className="text-[11px] text-slate-500 block">Email Address</span>
-                  <a href={`mailto:${profile.email}`} className="text-slate-900 dark:text-white font-medium hover:underline">
-                    {profile.email || 'anilshrestha01.dev@gmail.com'}
+                  <span className="text-[11px] text-slate-500 block">Direct Email</span>
+                  <a href={`mailto:${profile.email || 'hello@anilshrestha.design'}`} className="text-slate-900 dark:text-white font-medium hover:underline">
+                    {profile.email || 'hello@anilshrestha.design'}
                   </a>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5">
-                <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-white/10">
+                <MapPin className="w-4 h-4 text-blue-600 dark:text-sky-400 shrink-0" />
                 <div>
-                  <span className="text-[11px] text-slate-500 block">Location</span>
-                  <span className="text-slate-900 dark:text-white font-medium">{profile.location || 'Kathmandu, Nepal'}</span>
+                  <span className="text-[11px] text-slate-500 block">Studio Base</span>
+                  <span className="text-slate-900 dark:text-white font-medium">{profile.location || 'Pokhara, Nepal'}</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/5">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#121212] border border-slate-200/80 dark:border-white/10">
                 <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <div>
-                  <span className="text-[11px] text-slate-500 block">Response Time</span>
+                  <span className="text-[11px] text-slate-500 block">Typical Response Time</span>
                   <span className="text-slate-900 dark:text-white font-medium">Within 24–48 hours</span>
                 </div>
               </div>
@@ -281,7 +323,7 @@ export const ContactPage: React.FC = () => {
           </SpotlightCard>
 
           <SpotlightCard className="p-6 space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Profiles & Code</h3>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Profiles & Portfolios</h2>
             <div className="flex flex-wrap gap-2 pt-1">
               {socialLinks.filter((s) => s.active).map((soc) => (
                 <a

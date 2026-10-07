@@ -153,7 +153,7 @@ export const SkillsManagerPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-slate-500">Preview:</span>
                   <div className="w-6 h-6 rounded bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 p-0.5 flex items-center justify-center">
-                    <img src={newCustomIconUrl} alt="Preview" className="w-full h-full object-contain" />
+                    <img src={newCustomIconUrl} alt={`${newName || 'Skill'} icon preview`} className="w-full h-full object-contain" />
                   </div>
                 </div>
                 <button

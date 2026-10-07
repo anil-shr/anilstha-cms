@@ -47,10 +47,31 @@ export const AdminLayout: React.FC<{
 
   // Auth guard: redirect to /admin/login if not authenticated
   useEffect(() => {
-    if (!isAdmin) {
+    let hasStoredAdmin = false;
+    try {
+      const stored = localStorage.getItem('as_admin_auth');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.role === 'admin') hasStoredAdmin = true;
+      }
+    } catch {}
+
+    if (!isAdmin && !hasStoredAdmin) {
       navigate('/admin/login');
     }
   }, [isAdmin, navigate]);
+
+  const hasStoredAdmin = Boolean(
+    typeof window !== 'undefined' &&
+    (() => {
+      try {
+        const stored = localStorage.getItem('as_admin_auth');
+        return stored ? JSON.parse(stored)?.role === 'admin' : false;
+      } catch {
+        return false;
+      }
+    })()
+  );
 
   const unreadMessagesCount = (contactMessages || []).filter((m) => m.status === 'unread').length;
 
@@ -68,7 +89,7 @@ export const AdminLayout: React.FC<{
     { label: 'Analytics', to: '/admin/analytics', icon: BarChart3 },
   ];
 
-  if (!isAdmin) {
+  if (!isAdmin && !hasStoredAdmin) {
     return null;
   }
 
