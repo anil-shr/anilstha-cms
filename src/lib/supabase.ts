@@ -5,9 +5,15 @@ export const SUPABASE_STORAGE_KEYS = {
   KEY: 'as_supabase_anon_key',
 };
 
-export const DEFAULT_SUPABASE_URL = 'https://zhbzmkofwklefhfsocoz.supabase.co';
+export const DEFAULT_SUPABASE_URL = 'https://fkkrbhljgknkabanfagt.supabase.co';
 export const DEFAULT_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYnpta29md2tsZWZoZnNvY296Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExNzgwNzksImV4cCI6MjEwNjc1NDA3OX0.FtijsBtv6SCgVneFVKOkP9CkfJrZrnl_uK-EQSzVEeg';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZra3JiaGxqZ2tua2FiYW5mYWd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NDk0NjYsImV4cCI6MjEwNzAyNTQ2Nn0.wIYf-wxEKRfOTQ7RHfuI2BEj3VvVkNgpIKEd2W04COQ';
+
+export function sanitizeSupabaseUrl(raw: string): string {
+  if (!raw) return DEFAULT_SUPABASE_URL;
+  const match = raw.match(/https:\/\/[a-z0-9-]+\.supabase\.co/i);
+  return match ? match[0] : raw.replace(/[\]\)\(\[].*$/, '').trim();
+}
 
 // Resolve Supabase credentials from either environment variables, local admin configuration, or project defaults
 export const getSupabaseCredentials = () => {
@@ -28,10 +34,18 @@ export const getSupabaseCredentials = () => {
     try {
       storedUrl = localStorage.getItem(SUPABASE_STORAGE_KEYS.URL) || '';
       storedKey = localStorage.getItem(SUPABASE_STORAGE_KEYS.KEY) || '';
+      // If previous old database key was cached in localStorage, clear it so new secrets apply
+      if (storedUrl && storedUrl.includes('zhbzmkofwklefhfsocoz')) {
+        localStorage.removeItem(SUPABASE_STORAGE_KEYS.URL);
+        localStorage.removeItem(SUPABASE_STORAGE_KEYS.KEY);
+        storedUrl = '';
+        storedKey = '';
+      }
     } catch {}
   }
 
-  const url = (envUrl || storedUrl || DEFAULT_SUPABASE_URL).trim();
+  const rawUrl = envUrl || storedUrl || DEFAULT_SUPABASE_URL;
+  const url = sanitizeSupabaseUrl(rawUrl);
   const key = (envKey || storedKey || DEFAULT_SUPABASE_ANON_KEY).trim();
 
   const isConfigured = Boolean(

@@ -28,11 +28,17 @@ export function toUUID(str: string): string {
 }
 
 // Initialize Supabase Client with service role key for guaranteed administrative writes
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://zhbzmkofwklefhfsocoz.supabase.co';
+function sanitizeSupabaseUrl(raw?: string): string {
+  if (!raw) return 'https://fkkrbhljgknkabanfagt.supabase.co';
+  const match = raw.match(/https:\/\/[a-z0-9-]+\.supabase\.co/i);
+  return match ? match[0] : raw.replace(/[\]\)\(\[].*$/, '').trim();
+}
+
+const supabaseUrl = sanitizeSupabaseUrl(process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL);
 const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYnpta29md2tsZWZoZnNvY296Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExNzgwNzksImV4cCI6MjEwNjc1NDA3OX0.FtijsBtv6SCgVneFVKOkP9CkfJrZrnl_uK-EQSzVEeg';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZra3JiaGxqZ2tua2FiYW5mYWd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NDk0NjYsImV4cCI6MjEwNzAyNTQ2Nn0.wIYf-wxEKRfOTQ7RHfuI2BEj3VvVkNgpIKEd2W04COQ';
 
 let supabase: SupabaseClient | null = null;
 if (supabaseUrl && supabaseKey) {
@@ -41,6 +47,9 @@ if (supabaseUrl && supabaseKey) {
       auth: { persistSession: false },
     });
     console.log('[Server] Supabase client initialized with endpoint:', supabaseUrl);
+
+    // Ensure public storage bucket exists for media uploads
+    supabase.storage.createBucket('portfolio-media', { public: true, fileSizeLimit: 10485760 }).catch(() => {});
   } catch (err) {
     console.error('[Server] Failed to initialize Supabase client:', err);
   }
