@@ -15,6 +15,7 @@ import {
   MessageSquare,
   ShieldCheck,
   Lock,
+  X,
 } from 'lucide-react';
 
 export const ContactPage: React.FC = () => {
@@ -33,7 +34,15 @@ export const ContactPage: React.FC = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (toastVisible) {
+      const timer = setTimeout(() => setToastVisible(false), 5500);
+      return () => clearTimeout(timer);
+    }
+  }, [toastVisible]);
 
   useEffect(() => {
     updateSEO({
@@ -81,6 +90,7 @@ export const ContactPage: React.FC = () => {
 
       trackEvent('contact_form_submit', { service: formData.service }, cookieConsent.analytics);
       setSuccess(true);
+      setToastVisible(true);
       setFormData({
         name: '',
         email: '',
@@ -341,6 +351,35 @@ export const ContactPage: React.FC = () => {
           </SpotlightCard>
         </div>
       </div>
+
+      {/* Floating Success Toast Notification */}
+      {toastVisible && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-white dark:bg-[#18181b] border-2 border-emerald-500 rounded-2xl p-4 shadow-2xl flex items-start gap-3.5 animate-in slide-in-from-bottom-5 duration-200"
+        >
+          <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Check className="w-5 h-5 stroke-[2.5]" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-1 text-left">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+              Message Sent Successfully!
+            </h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Thank you for reaching out. Anil Shrestha has received your note and will reply within 24–48 hours.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastVisible(false)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg cursor-pointer"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

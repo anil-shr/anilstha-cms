@@ -8,9 +8,12 @@ import {
   Sun,
   Moon,
   ArrowUpRight,
+  Search,
 } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
+export const Navbar: React.FC<{
+  onOpenCommandPalette?: () => void;
+}> = ({ onOpenCommandPalette }) => {
   const { path, navigate } = useRouter();
   const { profile } = useData();
   const { theme, toggleTheme } = useTheme();
@@ -87,6 +90,20 @@ export const Navbar: React.FC = () => {
 
           {/* Right: Theme Toggle & Action CTA */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Command Palette Trigger */}
+            <button
+              type="button"
+              onClick={onOpenCommandPalette}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/5 hover:bg-slate-200/70 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 transition-colors cursor-pointer text-xs"
+              title="Search & Quick Navigation (Cmd + K)"
+              aria-label="Open command search"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono font-semibold px-1 rounded bg-white dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                ⌘K
+              </kbd>
+            </button>
+
             {/* Smooth Theme Switch (Sun & Moon) */}
             <button
               type="button"

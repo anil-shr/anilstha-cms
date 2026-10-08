@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from './lib/router';
 import { useData } from './context/DataContext';
 import { initGA } from './lib/analytics';
+import { updateSEOByRoute } from './lib/seo';
 
 // Public Components
 import { Navbar } from './components/public/Navbar';
 import { Footer } from './components/public/Footer';
 import { CookieBanner } from './components/public/CookieBanner';
 import { MouseGlow } from './components/public/MouseGlow';
+import { CommandPalette } from './components/public/CommandPalette';
 
 // Public Pages
 import { HomePage } from './pages/public/HomePage';
@@ -45,6 +47,24 @@ export default function App() {
   const { path } = useRouter();
   const { siteSettings, cookieConsent } = useData();
   const [cookieSettingsModalOpen, setCookieSettingsModalOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Dynamically update SEO meta tags on every route transition
+  useEffect(() => {
+    updateSEOByRoute(path);
+  }, [path]);
+
+  // Global Keyboard Shortcut: Cmd/Ctrl + K opens Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Initialize GA4 if measurement ID exists and user consented
   useEffect(() => {
@@ -143,12 +163,16 @@ export default function App() {
   return (
     <div className="flex flex-col min-h-screen bg-[#f8fafc] dark:bg-[#121212] text-slate-900 dark:text-slate-100 selection:bg-blue-600 selection:text-white relative transition-colors duration-200">
       <MouseGlow />
-      <Navbar />
+      <Navbar onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
       <main className="flex-1 relative z-10">{renderPublicPage()}</main>
       <Footer onOpenCookieSettings={() => setCookieSettingsModalOpen(true)} />
       <CookieBanner
         isOpenDirectly={cookieSettingsModalOpen}
         onCloseDirectly={() => setCookieSettingsModalOpen(false)}
+      />
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
       />
     </div>
   );

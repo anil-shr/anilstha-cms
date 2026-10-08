@@ -32,7 +32,7 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://zhbzmkofwklefhfsoc
 const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
-  '';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYnpta29md2tsZWZoZnNvY296Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExNzgwNzksImV4cCI6MjEwNjc1NDA3OX0.FtijsBtv6SCgVneFVKOkP9CkfJrZrnl_uK-EQSzVEeg';
 
 let supabase: SupabaseClient | null = null;
 if (supabaseUrl && supabaseKey) {
@@ -147,6 +147,20 @@ function sanitizeSocialLink(soc: any) {
   };
 }
 
+function sanitizeMedia(m: any) {
+  return {
+    id: toUUID(m.id),
+    filename: m.filename || 'media-' + Date.now(),
+    original_name: m.original_name || m.filename || 'file',
+    url: m.url || '',
+    file_size: typeof m.file_size === 'number' ? m.file_size : 0,
+    mime_type: m.mime_type || 'image/jpeg',
+    dimensions: m.dimensions || 'Standard',
+    alt_text: m.alt_text || null,
+    created_at: m.created_at || new Date().toISOString(),
+  };
+}
+
 function sanitizeSettings(sett: any) {
   return {
     id: toUUID(sett.id || 'settings-main'),
@@ -214,6 +228,7 @@ async function startServer() {
         { data: experience, error: expErr },
         { data: socialLinks, error: socErr },
         { data: siteSettings, error: settsErr },
+        { data: media, error: mediaErr },
       ] = await Promise.all([
         supabase.from('profiles').select('*').limit(1).maybeSingle(),
         supabase.from('projects').select('*').order('sort_order', { ascending: true }),
@@ -222,6 +237,7 @@ async function startServer() {
         supabase.from('experience').select('*').order('sort_order', { ascending: true }),
         supabase.from('social_links').select('*').order('sort_order', { ascending: true }),
         supabase.from('site_settings').select('*').limit(1).maybeSingle(),
+        supabase.from('media').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (profErr || projErr) {
@@ -236,6 +252,7 @@ async function startServer() {
         experience: experience || [],
         socialLinks: socialLinks || [],
         siteSettings: siteSettings || null,
+        media: media || [],
       });
     } catch (err: any) {
       console.error('[Server] /api/data error:', err);
@@ -440,11 +457,102 @@ async function startServer() {
     }
   });
 
+  // API Route: Admin Save Media Record
+  app.post('/api/admin/save-media', async (req: Request, res: Response) => {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
+    try {
+      const clean = sanitizeMedia(req.body);
+      const { data, error } = await supabase.from('media').upsert(clean).select().single();
+      if (error) return res.status(400).json({ success: false, error: error.message });
+      return res.json({ success: true, item: data || clean });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API Route: Admin Delete Media Record & Storage file
+  app.post('/api/admin/delete-media', async (req: Request, res: Response) => {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
+    try {
+      const { id, filename } = req.body;
+      const uuid = toUUID(id);
+      const { error } = await supabase.from('media').delete().eq('id', uuid);
+      if (error) return res.status(400).json({ success: false, error: error.message });
+      if (filename) {
+        try {
+          await supabase.storage.from('portfolio-media').remove([filename]);
+        } catch {}
+      }
+      return res.json({ success: true, id });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API Route: Admin Upload Media directly to Supabase Storage & Database
+  app.post('/api/admin/upload-media', async (req: Request, res: Response) => {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
+    try {
+      const { filename, mime_type, base64, alt_text, dimensions } = req.body;
+      if (!base64 || !filename) {
+        return res.status(400).json({ success: false, error: 'Missing file content' });
+      }
+      const rawBase64 = base64.replace(/^data:.*?;base64,/, '');
+      const buffer = Buffer.from(rawBase64, 'base64');
+      const cleanFileName = `${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+      // Upload to Supabase Storage public bucket
+      const { error: uploadErr } = await supabase.storage
+        .from('portfolio-media')
+        .upload(cleanFileName, buffer, {
+          contentType: mime_type || 'image/jpeg',
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        console.warn('[Server] Supabase Storage upload notice, falling back:', uploadErr);
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('portfolio-media')
+        .getPublicUrl(cleanFileName);
+
+      const publicUrl = urlData?.publicUrl || base64;
+
+      const mediaRecord = sanitizeMedia({
+        id: toUUID(Date.now().toString()),
+        filename: cleanFileName,
+        original_name: filename,
+        url: publicUrl,
+        file_size: buffer.length,
+        mime_type: mime_type || 'image/jpeg',
+        dimensions: dimensions || 'Standard',
+        alt_text: alt_text || filename.split('.')[0],
+      });
+
+      const { data: savedData, error: dbErr } = await supabase
+        .from('media')
+        .upsert(mediaRecord)
+        .select()
+        .single();
+
+      if (dbErr) {
+        console.warn('[Server] Media DB write notice:', dbErr);
+      }
+
+      console.log(`[Server] Uploaded media "${cleanFileName}" to Supabase Storage:`, publicUrl);
+      return res.json({ success: true, item: savedData || mediaRecord });
+    } catch (err: any) {
+      console.error('[Server] upload-media exception:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // API Route: Push ALL Local State to Supabase
   app.post('/api/admin/push-all', async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
-      const { profile, projects, services, skills, experience, socialLinks, siteSettings } = req.body;
+      const { profile, projects, services, skills, experience, socialLinks, siteSettings, media } = req.body;
 
       if (profile) {
         await supabase.from('profiles').upsert(sanitizeProfile(profile));
@@ -477,6 +585,12 @@ async function startServer() {
       if (Array.isArray(socialLinks) && socialLinks.length > 0) {
         for (const soc of socialLinks) {
           await supabase.from('social_links').upsert(sanitizeSocialLink(soc));
+        }
+      }
+
+      if (Array.isArray(media) && media.length > 0) {
+        for (const m of media) {
+          await supabase.from('media').upsert(sanitizeMedia(m));
         }
       }
 
@@ -514,6 +628,72 @@ async function startServer() {
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }
+  });
+
+  // Dynamic Sitemap endpoint
+  app.get('/sitemap.xml', async (_req: Request, res: Response) => {
+    const DOMAIN = 'https://anilshrestha11.com.np';
+    let projects: any[] = [];
+    if (supabase) {
+      const { data } = await supabase
+        .from('projects')
+        .select('slug, updated_at')
+        .eq('published', true);
+      projects = data || [];
+    }
+
+    const staticRoutes = [
+      { url: `${DOMAIN}/`, priority: '1.0', changefreq: 'weekly' },
+      { url: `${DOMAIN}/work`, priority: '0.9', changefreq: 'weekly' },
+      { url: `${DOMAIN}/about`, priority: '0.8', changefreq: 'monthly' },
+      { url: `${DOMAIN}/services`, priority: '0.8', changefreq: 'monthly' },
+      { url: `${DOMAIN}/skills`, priority: '0.8', changefreq: 'monthly' },
+      { url: `${DOMAIN}/resume`, priority: '0.8', changefreq: 'monthly' },
+      { url: `${DOMAIN}/arcade`, priority: '0.7', changefreq: 'weekly' },
+      { url: `${DOMAIN}/contact`, priority: '0.7', changefreq: 'monthly' },
+      { url: `${DOMAIN}/privacy`, priority: '0.3', changefreq: 'yearly' },
+      { url: `${DOMAIN}/terms`, priority: '0.3', changefreq: 'yearly' },
+      { url: `${DOMAIN}/cookies`, priority: '0.3', changefreq: 'yearly' },
+    ];
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticRoutes
+  .map(
+    (r) => `  <url>
+    <loc>${r.url}</loc>
+    <changefreq>${r.changefreq}</changefreq>
+    <priority>${r.priority}</priority>
+  </url>`
+  )
+  .join('\n')}
+${projects
+  .map(
+    (p) => `  <url>
+    <loc>${DOMAIN}/work/${p.slug}</loc>
+    <lastmod>${p.updated_at ? p.updated_at.split('T')[0] : '2026-10-08'}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>`
+  )
+  .join('\n')}
+</urlset>`;
+
+    res.header('Content-Type', 'application/xml');
+    return res.send(xml);
+  });
+
+  // Dynamic Robots.txt endpoint
+  app.get('/robots.txt', (_req: Request, res: Response) => {
+    res.header('Content-Type', 'text/plain');
+    return res.send(`User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/private/*
+
+Sitemap: https://anilshrestha11.com.np/sitemap.xml
+`);
   });
 
   // Mount Vite or serve static assets

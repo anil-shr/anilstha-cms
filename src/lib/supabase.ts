@@ -5,7 +5,11 @@ export const SUPABASE_STORAGE_KEYS = {
   KEY: 'as_supabase_anon_key',
 };
 
-// Resolve Supabase credentials from either environment variables or local admin configuration
+export const DEFAULT_SUPABASE_URL = 'https://zhbzmkofwklefhfsocoz.supabase.co';
+export const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYnpta29md2tsZWZoZnNvY296Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExNzgwNzksImV4cCI6MjEwNjc1NDA3OX0.FtijsBtv6SCgVneFVKOkP9CkfJrZrnl_uK-EQSzVEeg';
+
+// Resolve Supabase credentials from either environment variables, local admin configuration, or project defaults
 export const getSupabaseCredentials = () => {
   const envUrl =
     (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
@@ -27,8 +31,8 @@ export const getSupabaseCredentials = () => {
     } catch {}
   }
 
-  const url = (envUrl || storedUrl || '').trim();
-  const key = (envKey || storedKey || '').trim();
+  const url = (envUrl || storedUrl || DEFAULT_SUPABASE_URL).trim();
+  const key = (envKey || storedKey || DEFAULT_SUPABASE_ANON_KEY).trim();
 
   const isConfigured = Boolean(
     url &&

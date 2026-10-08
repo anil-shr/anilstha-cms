@@ -60,6 +60,7 @@ interface DataContextType {
   saveSocialLinks: (links: SocialLink[]) => Promise<boolean>;
   addMediaItem: (item: MediaItem) => Promise<boolean>;
   deleteMediaItem: (id: string) => Promise<boolean>;
+  uploadMediaFile: (file: File) => Promise<{ success: boolean; item?: MediaItem; error?: string }>;
   updateSiteSettings: (settings: SiteSettings) => Promise<boolean>;
   submitContactMessage: (msg: Omit<ContactMessage, 'id' | 'status' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
   updateMessageStatus: (id: string, status: ContactMessage['status']) => Promise<boolean>;
@@ -241,6 +242,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           if (Array.isArray(apiData.socialLinks) && apiData.socialLinks.length > 0) {
             setSocialLinks(apiData.socialLinks);
+          }
+          if (Array.isArray(apiData.media) && apiData.media.length > 0) {
+            setMedia(apiData.media);
           }
           if (apiData.siteSettings) setSiteSettings(apiData.siteSettings);
           setIsCloudConnected(true);
@@ -699,28 +703,86 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addMediaItem = async (item: MediaItem): Promise<boolean> => {
     setMedia((prev) => [item, ...prev]);
-    const client = getSupabaseClient();
-    if (client) {
-      try {
-        await client.from('media').upsert(item);
-      } catch (err) {
-        console.error('Supabase addMediaItem error:', err);
+    try {
+      await apiPost('/api/admin/save-media', item);
+      setIsCloudConnected(true);
+    } catch (err) {
+      console.warn('[DataContext] Backend save-media notice, trying client fallback:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('media').upsert(item);
+        } catch (dbErr) {
+          console.error('Supabase addMediaItem error:', dbErr);
+        }
       }
     }
     return true;
   };
 
   const deleteMediaItem = async (id: string): Promise<boolean> => {
+    const target = media.find((m) => m.id === id);
     setMedia((prev) => prev.filter((m) => m.id !== id));
-    const client = getSupabaseClient();
-    if (client) {
-      try {
-        await client.from('media').delete().eq('id', id);
-      } catch (err) {
-        console.error('Supabase deleteMediaItem error:', err);
+    try {
+      await apiPost('/api/admin/delete-media', { id, filename: target?.filename });
+    } catch (err) {
+      console.warn('[DataContext] Backend delete-media notice, trying client fallback:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('media').delete().eq('id', id);
+        } catch (dbErr) {
+          console.error('Supabase deleteMediaItem error:', dbErr);
+        }
       }
     }
     return true;
+  };
+
+  const uploadMediaFile = async (
+    file: File
+  ): Promise<{ success: boolean; item?: MediaItem; error?: string }> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        try {
+          const res = await apiPost('/api/admin/upload-media', {
+            filename: file.name,
+            mime_type: file.type,
+            base64,
+            dimensions: file.type.startsWith('image/') ? 'Standard' : 'Document',
+            alt_text: file.name.split('.')[0].replace(/[_-]/g, ' '),
+          });
+          if (res?.item) {
+            setMedia((prev) => [res.item, ...prev]);
+            setIsCloudConnected(true);
+            resolve({ success: true, item: res.item });
+            return;
+          }
+          resolve({ success: false, error: 'Upload returned empty item' });
+        } catch (err: any) {
+          console.warn('[DataContext] upload-media backend error, falling back locally:', err);
+          const fallbackItem: MediaItem = {
+            id: 'med-' + Date.now(),
+            filename: file.name,
+            original_name: file.name,
+            url: base64,
+            file_size: file.size,
+            mime_type: file.type,
+            dimensions: 'Standard',
+            alt_text: file.name.split('.')[0].replace(/[_-]/g, ' '),
+            created_at: new Date().toISOString(),
+          };
+          setMedia((prev) => [fallbackItem, ...prev]);
+          resolve({ success: true, item: fallbackItem });
+        }
+      };
+      reader.onerror = () => {
+        resolve({ success: false, error: 'Could not read file data' });
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const updateSiteSettings = async (settings: SiteSettings): Promise<boolean> => {
@@ -825,6 +887,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         experience,
         socialLinks,
         siteSettings,
+        media,
       });
 
       setIsCloudConnected(true);
@@ -983,6 +1046,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         saveSocialLinks,
         addMediaItem,
         deleteMediaItem,
+        uploadMediaFile,
         updateSiteSettings,
         submitContactMessage,
         updateMessageStatus,

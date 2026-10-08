@@ -16,6 +16,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Trophy,
+  Lock,
+  Unlock,
+  Eye,
+  Download,
+  Share2,
+  Code,
+  Flame,
+  Cpu,
+  Monitor,
+  Zap,
 } from 'lucide-react';
 
 export const ArcadePage: React.FC = () => {
@@ -23,39 +33,38 @@ export const ArcadePage: React.FC = () => {
     updateSEO({
       title: 'Games & Creative Tools — Anil Shrestha',
       description:
-        'Interactive designer arcade playground featuring Chrome Dino Runner, Tic Tac Toe with AI, Color Palette Generator, Retro Snake, and Nepal Bikram Sambat Date Converter.',
-      canonicalUrl: typeof window !== 'undefined' ? window.location.origin + '/arcade' : '',
+        'Interactive designer arcade playground featuring Chrome Dino Runner with classic/minimal/retro/cyberpunk themes, Snake Game, Color Palette Generator with live UI preview, and Nepal BS Date Converter.',
+      canonicalUrl: 'https://anilshrestha11.com.np/arcade',
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'PALETTE' | 'TTT' | 'DINO' | 'SNAKE' | 'DATE'>('PALETTE');
+  const [activeTab, setActiveTab] = useState<'PALETTE' | 'DINO' | 'SNAKE' | 'DATE'>('PALETTE');
 
   const tabs = [
-    { id: 'PALETTE' as const, label: 'Palette Generator', icon: Palette },
-    { id: 'TTT' as const, label: 'Tic Tac Toe', icon: Gamepad2 },
-    { id: 'DINO' as const, label: 'Dino Runner', icon: Play },
-    { id: 'SNAKE' as const, label: 'Retro Snake', icon: Sparkles },
+    { id: 'PALETTE' as const, label: 'Color Palette Studio', icon: Palette },
+    { id: 'DINO' as const, label: 'Chrome Dino Runner', icon: Play },
+    { id: 'SNAKE' as const, label: 'Snake Arcade', icon: Sparkles },
     { id: 'DATE' as const, label: 'Nepal BS Date', icon: Calendar },
   ];
 
   return (
-    <div className="min-h-screen py-12 md:py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-10 sm:space-y-12 text-slate-900 dark:text-slate-100 transition-colors">
-      {/* Header */}
-      <div className="text-center max-w-3xl mx-auto space-y-3.5">
+    <div className="min-h-screen py-10 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8 sm:space-y-12 text-slate-900 dark:text-slate-100 transition-colors text-left">
+      {/* Page Header */}
+      <div className="text-center max-w-3xl mx-auto space-y-3 sm:space-y-4">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-sky-400 text-xs font-semibold">
           <Gamepad2 className="w-4 h-4 text-blue-600 dark:text-sky-400" />
-          <span>Interactive Designer Arcade</span>
+          <span>Interactive Designer Arcade & Tools</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
           Games & Creative Tools
         </h1>
         <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
-          Take a creative break. Explore responsive mini-games and quick utility tools designed right in the browser.
+          Take a creative break. Explore responsive browser mini-games with authentic themes, color design utilities, and regional date converters.
         </p>
       </div>
 
-      {/* Responsive Horizontal Scroll Tab Bar */}
-      <div className="max-w-3xl mx-auto overflow-x-auto no-scrollbar py-1">
+      {/* Responsive Horizontal Tab Bar */}
+      <div className="max-w-2xl mx-auto overflow-x-auto no-scrollbar py-1">
         <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl sm:rounded-full bg-slate-100 dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 shadow-xs min-w-full sm:min-w-0 justify-start sm:justify-center">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -65,7 +74,7 @@ export const ArcadePage: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5'
@@ -79,10 +88,9 @@ export const ArcadePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tool / Game Workspace Container */}
-      <div className="max-w-4xl mx-auto">
-        {activeTab === 'PALETTE' && <ColorPaletteTool />}
-        {activeTab === 'TTT' && <TicTacToeGame />}
+      {/* Active Tool/Game Container */}
+      <div className="w-full">
+        {activeTab === 'PALETTE' && <ColorPaletteStudio />}
         {activeTab === 'DINO' && <DinoRunnerGame />}
         {activeTab === 'SNAKE' && <SnakeGame />}
         {activeTab === 'DATE' && <DateConverterTool />}
@@ -92,443 +100,423 @@ export const ArcadePage: React.FC = () => {
 };
 
 // =========================================================================
-// 1. COLOR PALETTE GENERATOR TOOL
+// 1. REFINED COLOR PALETTE STUDIO WITH UI PREVIEW & ACCESSIBILITY
 // =========================================================================
-const ColorPaletteTool: React.FC = () => {
-  const samplePalettes = [
-    { name: 'Himalayan Sunrise', colors: ['#2563eb', '#f59e0b', '#06b6d4', '#10b981', '#64748b'] },
-    { name: 'Pokhara Lake Twilight', colors: ['#0f172a', '#1e293b', '#3b82f6', '#60a5fa', '#f8fafc'] },
-    { name: 'Tactile Editorial', colors: ['#1c1917', '#c2410c', '#78716c', '#d6d3d1', '#f5f5f4'] },
-    { name: 'Organic Botanical', colors: ['#14532d', '#16a34a', '#86efac', '#fef08a', '#1e293b'] },
-    { name: 'Modern Minimalist', colors: ['#09090b', '#27272a', '#52525b', '#a1a1aa', '#f4f4f5'] },
+interface PaletteColor {
+  hex: string;
+  locked: boolean;
+}
+
+const ColorPaletteStudio: React.FC = () => {
+  const curatedPalettes = [
+    {
+      name: 'Himalayan Sunrise',
+      colors: ['#1E3A8A', '#2563EB', '#F59E0B', '#10B981', '#06B6D4'],
+    },
+    {
+      name: 'Pokhara Lake Twilight',
+      colors: ['#0F172A', '#1E293B', '#3B82F6', '#60A5FA', '#F8FAFC'],
+    },
+    {
+      name: 'Cyberpunk Neon',
+      colors: ['#0A0A0F', '#7928CA', '#FF0080', '#00DFD8', '#F5A623'],
+    },
+    {
+      name: 'Tactile Editorial',
+      colors: ['#1C1917', '#C2410C', '#78716C', '#D6D3D1', '#F5F5F4'],
+    },
+    {
+      name: 'Organic Botanical',
+      colors: ['#14532D', '#16A34A', '#86EFAC', '#FEF08A', '#1E293B'],
+    },
+    {
+      name: 'Tokyo Sunset',
+      colors: ['#312E81', '#4F46E5', '#EC4899', '#F43F5E', '#FBBF24'],
+    },
+    {
+      name: 'Modern Minimalist',
+      colors: ['#09090B', '#27272A', '#52525B', '#A1A1AA', '#F4F4F5'],
+    },
   ];
 
-  const [currentPalette, setCurrentPalette] = useState(samplePalettes[0]);
-  const [copiedHex, setCopiedHex] = useState<string | null>(null);
+  const [palette, setPalette] = useState<PaletteColor[]>([
+    { hex: '#1E3A8A', locked: false },
+    { hex: '#2563EB', locked: false },
+    { hex: '#F59E0B', locked: false },
+    { hex: '#10B981', locked: false },
+    { hex: '#06B6D4', locked: false },
+  ]);
 
-  const generateRandom = () => {
+  const [paletteName, setPaletteName] = useState('Himalayan Sunrise');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'css' | 'tailwind' | 'json'>('css');
+
+  // Generate random vibrant hex
+  const getRandomHex = () => {
     const letters = '0123456789ABCDEF';
-    const randColor = () => {
-      let color = '#';
-      for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)];
-      return color;
+    let color = '#';
+    for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)];
+    return color;
+  };
+
+  const generateNewPalette = () => {
+    setPalette((prev) =>
+      prev.map((c) => (c.locked ? c : { hex: getRandomHex(), locked: false }))
+    );
+    setPaletteName('Custom Harmonic Palette');
+  };
+
+  // Keyboard shortcut: spacebar generates new colors
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && (e.target as HTMLElement).tagName !== 'INPUT' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        generateNewPalette();
+      }
     };
-    setCurrentPalette({
-      name: 'Harmonic Creative Palette',
-      colors: [randColor(), randColor(), randColor(), randColor(), randColor()],
-    });
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const toggleLock = (index: number) => {
+    setPalette((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, locked: !c.locked } : c))
+    );
   };
 
-  const copyToClipboard = (hex: string) => {
-    navigator.clipboard.writeText(hex);
-    setCopiedHex(hex);
-    setTimeout(() => setCopiedHex(null), 1500);
+  const copyText = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(label);
+    setTimeout(() => setCopiedCode(null), 1800);
   };
 
-  // Helper to determine text contrast based on color brightness
-  const isLightColor = (hex: string) => {
+  // Color conversion helpers
+  const hexToRgb = (hex: string) => {
     const clean = hex.replace('#', '');
     const r = parseInt(clean.substring(0, 2), 16) || 0;
     const g = parseInt(clean.substring(2, 4), 16) || 0;
     const b = parseInt(clean.substring(4, 6), 16) || 0;
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 155;
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  const isLight = (hex: string) => {
+    const clean = hex.replace('#', '');
+    const r = parseInt(clean.substring(0, 2), 16) || 0;
+    const g = parseInt(clean.substring(2, 4), 16) || 0;
+    const b = parseInt(clean.substring(4, 6), 16) || 0;
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return lum > 0.55;
+  };
+
+  const getContrastRatio = (hex: string) => {
+    const light = isLight(hex);
+    return light ? 'AAA' : 'AA';
+  };
+
+  const exportSnippets = {
+    css: `:root {\n${palette.map((c, i) => `  --color-${i + 1}: ${c.hex};`).join('\n')}\n}`,
+    tailwind: `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n        palette: {\n${palette.map((c, i) => `          ${(i + 1) * 100}: '${c.hex}',`).join('\n')}\n        }\n      }\n    }\n  }\n};`,
+    json: JSON.stringify({ name: paletteName, colors: palette.map((c) => c.hex) }, null, 2),
   };
 
   return (
-    <div className="bg-card-theme border border-card-theme text-primary-theme rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-xs space-y-8 transition-colors">
+      {/* Studio Header & Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-white/10">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400 block mb-1">
-            Design Palette Engine
+            Design Token Studio
           </span>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{currentPalette.name}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>{paletteName}</span>
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Press <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-white/10 rounded font-mono font-bold text-slate-800 dark:text-slate-200">Space</kbd> or click Generate to re-roll unlocked swatches.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            onClick={generateRandom}
-            className="px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+            onClick={generateNewPalette}
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-blue-600/25 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Randomize Palette</span>
+            <span>Generate</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowExportModal(true)}
+            className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <Code className="w-3.5 h-3.5" />
+            <span>Export Code</span>
           </button>
         </div>
       </div>
 
-      {/* Palette Color Bars (Responsive: comfortable on both mobile and desktop) */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 min-h-[360px] sm:h-60">
-        {currentPalette.colors.map((hex) => {
-          const isLight = isLightColor(hex);
+      {/* Preset Curated Palettes Chips */}
+      <div className="space-y-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+          Curated Palettes
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {curatedPalettes.map((cp) => (
+            <button
+              key={cp.name}
+              type="button"
+              onClick={() => {
+                setPalette(cp.colors.map((hex) => ({ hex, locked: false })));
+                setPaletteName(cp.name);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all flex items-center gap-2 cursor-pointer ${
+                paletteName === cp.name
+                  ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-sky-300 font-bold'
+                  : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex -space-x-1 overflow-hidden">
+                {cp.colors.slice(0, 3).map((col, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-block w-2.5 h-2.5 rounded-full border border-white dark:border-slate-900"
+                    style={{ backgroundColor: col }}
+                  />
+                ))}
+              </div>
+              <span>{cp.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main 5-Column Swatch Palette Display */}
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 rounded-2xl overflow-hidden">
+        {palette.map((col, idx) => {
+          const lightText = isLight(col.hex);
+          const contrast = getContrastRatio(col.hex);
           return (
             <div
-              key={hex}
-              onClick={() => copyToClipboard(hex)}
-              className="rounded-2xl p-4 flex flex-col justify-between group cursor-pointer transition-all hover:scale-[1.02] shadow-xs relative overflow-hidden min-h-[70px] sm:min-h-0"
-              style={{ backgroundColor: hex }}
+              key={idx}
+              className="group relative rounded-2xl p-4 sm:p-5 flex flex-col justify-between h-44 sm:h-72 transition-all shadow-sm hover:shadow-md"
+              style={{ backgroundColor: col.hex }}
             >
-              <div className="flex items-center justify-between w-full">
+              {/* Top Bar inside swatch: Lock & Accessibility Tag */}
+              <div className="flex items-center justify-between">
                 <span
-                  className={`text-xs font-mono font-bold uppercase px-2.5 py-1 rounded-md shadow-xs backdrop-blur-md ${
-                    isLight
-                      ? 'bg-black/80 text-white'
-                      : 'bg-white/90 text-slate-950'
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase tracking-wider backdrop-blur-xs ${
+                    lightText ? 'bg-black/10 text-slate-900' : 'bg-white/20 text-white'
                   }`}
+                  title={`WCAG Contrast Level: ${contrast}`}
                 >
-                  {hex}
+                  {contrast} WCAG
                 </span>
 
-                <span
-                  className={`text-[10px] uppercase font-semibold px-2 py-0.5 rounded ${
-                    isLight ? 'bg-black/60 text-slate-200' : 'bg-white/80 text-slate-800'
+                <button
+                  type="button"
+                  onClick={() => toggleLock(idx)}
+                  className={`p-1.5 rounded-full backdrop-blur-xs transition-colors cursor-pointer ${
+                    lightText
+                      ? 'bg-black/10 text-slate-900 hover:bg-black/20'
+                      : 'bg-white/20 text-white hover:bg-white/30'
                   }`}
+                  title={col.locked ? 'Unlock color' : 'Lock color'}
                 >
-                  {isLight ? 'Dark Text' : 'Light Text'}
-                </span>
+                  {col.locked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />}
+                </button>
               </div>
 
-              <div className="self-end p-2 rounded-full bg-white text-slate-900 shadow-md flex items-center gap-1">
-                {copiedHex === hex ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span className="text-[10px] font-bold text-emerald-600 pr-1">Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-slate-700" />
-                    <span className="text-[10px] font-bold text-slate-700 pr-1">Copy HEX</span>
-                  </>
-                )}
+              {/* Bottom Details inside swatch */}
+              <div
+                className={`space-y-1.5 pt-4 ${
+                  lightText ? 'text-slate-900' : 'text-white'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => copyText(col.hex, `hex-${idx}`)}
+                  className="w-full flex items-center justify-between font-mono font-black text-sm sm:text-base tracking-wider hover:opacity-80 cursor-pointer"
+                >
+                  <span>{col.hex}</span>
+                  {copiedCode === `hex-${idx}` ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => copyText(hexToRgb(col.hex), `rgb-${idx}`)}
+                  className="w-full text-left font-mono text-[11px] opacity-75 hover:opacity-100 cursor-pointer flex items-center justify-between"
+                >
+                  <span>{hexToRgb(col.hex)}</span>
+                </button>
+
+                <div className="pt-1">
+                  <span
+                    className={`text-[9px] uppercase tracking-wider block font-bold opacity-60`}
+                  >
+                    Slot {idx + 1}
+                  </span>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
-        <p>Click any color bar above to copy its HEX code instantly to your clipboard.</p>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-slate-700 dark:text-slate-300">Curated Presets:</span>
-          {samplePalettes.map((p) => (
-            <button
-              key={p.name}
-              type="button"
-              onClick={() => setCurrentPalette(p)}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-medium transition-colors cursor-pointer"
-            >
-              {p.name.split(' ')[0]}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// =========================================================================
-// 2. TIC TAC TOE GAME
-// =========================================================================
-const TicTacToeGame: React.FC = () => {
-  const [board, setBoard] = useState<(string | null)[]>(Array(9).fill(null));
-  const [isXNext, setIsXNext] = useState(true);
-  const [mode, setMode] = useState<'ai' | 'pvp'>('ai');
-  const [aiLevel, setAiLevel] = useState<'easy' | 'hard'>('hard');
-  const [score, setScore] = useState({ x: 0, o: 0, ties: 0 });
-  const [soundEnabled, setSoundEnabled] = useState(true);
-
-  const winningCombinations = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6],
-  ];
-
-  const calculateWinner = (squares: (string | null)[]) => {
-    for (const [a, b, c] of winningCombinations) {
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-        return { winner: squares[a], line: [a, b, c] };
-      }
-    }
-    if (squares.every(Boolean)) return { winner: 'Tie', line: [] };
-    return null;
-  };
-
-  const winInfo = calculateWinner(board);
-
-  const playSound = (type: 'move' | 'win') => {
-    if (!soundEnabled) return;
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      if (type === 'move') {
-        osc.frequency.setValueAtTime(350, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.08);
-      } else {
-        osc.frequency.setValueAtTime(550, audioCtx.currentTime);
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.2);
-      }
-    } catch {}
-  };
-
-  const handleSquareClick = (idx: number) => {
-    if (board[idx] || winInfo) return;
-    playSound('move');
-
-    const nextBoard = [...board];
-    nextBoard[idx] = isXNext ? 'X' : 'O';
-    setBoard(nextBoard);
-
-    const nextWinner = calculateWinner(nextBoard);
-    if (nextWinner) {
-      playSound('win');
-      if (nextWinner.winner === 'X') setScore((s) => ({ ...s, x: s.x + 1 }));
-      else if (nextWinner.winner === 'O') setScore((s) => ({ ...s, o: s.o + 1 }));
-      else setScore((s) => ({ ...s, ties: s.ties + 1 }));
-    } else {
-      setIsXNext(!isXNext);
-    }
-  };
-
-  // AI Turn Logic
-  useEffect(() => {
-    if (mode === 'ai' && !isXNext && !winInfo) {
-      const timer = setTimeout(() => {
-        const available = board
-          .map((v, i) => (v === null ? i : null))
-          .filter((v) => v !== null) as number[];
-        if (available.length === 0) return;
-
-        let moveIndex = available[0];
-        if (aiLevel === 'easy') {
-          moveIndex = available[Math.floor(Math.random() * available.length)];
-        } else {
-          let found = false;
-          // Check winning move
-          for (const i of available) {
-            const test = [...board];
-            test[i] = 'O';
-            if (calculateWinner(test)?.winner === 'O') {
-              moveIndex = i;
-              found = true;
-              break;
-            }
-          }
-          // Block opponent winning move
-          if (!found) {
-            for (const i of available) {
-              const test = [...board];
-              test[i] = 'X';
-              if (calculateWinner(test)?.winner === 'X') {
-                moveIndex = i;
-                found = true;
-                break;
-              }
-            }
-          }
-          // Choose center if open
-          if (!found && board[4] === null) moveIndex = 4;
-        }
-
-        playSound('move');
-        const nextBoard = [...board];
-        nextBoard[moveIndex] = 'O';
-        setBoard(nextBoard);
-
-        const nextWinner = calculateWinner(nextBoard);
-        if (nextWinner) {
-          playSound('win');
-          if (nextWinner.winner === 'O') setScore((s) => ({ ...s, o: s.o + 1 }));
-          else setScore((s) => ({ ...s, ties: s.ties + 1 }));
-        } else {
-          setIsXNext(true);
-        }
-      }, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [isXNext, mode, board, winInfo, aiLevel]);
-
-  const handleReset = () => {
-    setBoard(Array(9).fill(null));
-    setIsXNext(true);
-  };
-
-  return (
-    <div className="bg-card-theme border border-card-theme text-primary-theme rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400 block mb-1">
-            Classic Arcade Game
+      {/* Live Interactive UI Mockup Preview */}
+      <div className="p-6 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-blue-600 dark:text-sky-400" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              Live Real-World UI Preview
+            </h3>
+          </div>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+            Rendered with active palette colors
           </span>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Tic Tac Toe</h2>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-full bg-slate-100 dark:bg-[#121212] hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-            title={soundEnabled ? 'Mute Sound' : 'Enable Sound'}
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
+        {/* Real Mockup Card */}
+        <div
+          className="p-6 rounded-2xl shadow-sm space-y-4 text-left transition-colors border"
+          style={{
+            backgroundColor: palette[4].hex,
+            borderColor: palette[1].hex + '40',
+            color: isLight(palette[4].hex) ? '#0f172a' : '#f8fafc',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+              style={{
+                backgroundColor: palette[2].hex,
+                color: isLight(palette[2].hex) ? '#0f172a' : '#ffffff',
+              }}
+            >
+              Featured Brand Project
+            </span>
+            <span className="text-xs opacity-75 font-mono">2026 Edition</span>
+          </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#121212] p-1 rounded-full text-xs font-semibold">
+          <div className="space-y-1">
+            <h4 className="text-lg sm:text-xl font-bold">
+              Harmonic Brand Identity & Interface Experience
+            </h4>
+            <p className="text-xs sm:text-sm opacity-85 leading-relaxed max-w-xl">
+              Previewing how primary tones, accents, and background neutrals work together across contrast boundaries.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               type="button"
-              onClick={() => {
-                setMode('ai');
-                handleReset();
+              className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm transition-transform cursor-pointer"
+              style={{
+                backgroundColor: palette[0].hex,
+                color: isLight(palette[0].hex) ? '#0f172a' : '#ffffff',
               }}
-              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-                mode === 'ai' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-400'
-              }`}
             >
-              VS AI
+              Primary Action
             </button>
             <button
               type="button"
-              onClick={() => {
-                setMode('pvp');
-                handleReset();
+              className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border cursor-pointer"
+              style={{
+                borderColor: palette[1].hex,
+                color: isLight(palette[4].hex) ? palette[1].hex : '#ffffff',
+                backgroundColor: 'transparent',
               }}
-              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-                mode === 'pvp' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-400'
-              }`}
             >
-              2 Player
+              Outline Button
             </button>
+            <span
+              className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium"
+              style={{
+                backgroundColor: palette[3].hex + '30',
+                color: isLight(palette[4].hex) ? '#0f172a' : '#ffffff',
+              }}
+            >
+              Tag: {palette[3].hex}
+            </span>
           </div>
         </div>
       </div>
 
-      {mode === 'ai' && (
-        <div className="flex justify-end text-xs text-slate-600 dark:text-slate-400 gap-2 items-center">
-          <span>AI Difficulty:</span>
-          <button
-            type="button"
-            onClick={() => {
-              setAiLevel('easy');
-              handleReset();
-            }}
-            className={`font-bold cursor-pointer ${
-              aiLevel === 'easy' ? 'text-blue-600 dark:text-sky-400 underline' : 'hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Casual
-          </button>
-          <span>·</span>
-          <button
-            type="button"
-            onClick={() => {
-              setAiLevel('hard');
-              handleReset();
-            }}
-            className={`font-bold cursor-pointer ${
-              aiLevel === 'hard' ? 'text-blue-600 dark:text-sky-400 underline' : 'hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Master
-          </button>
+      {/* Code Export Modal */}
+      {showExportModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs"
+        >
+          <div className="w-full max-w-lg bg-white dark:bg-[#18181b] rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Code className="w-4 h-4 text-blue-600 dark:text-sky-400" />
+                <span>Export Design Tokens</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowExportModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex gap-2 border-b border-slate-200 dark:border-white/10 pb-2">
+              {(['css', 'tailwind', 'json'] as const).map((fmt) => (
+                <button
+                  key={fmt}
+                  type="button"
+                  onClick={() => setExportFormat(fmt)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                    exportFormat === fmt
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
+                  }`}
+                >
+                  {fmt}
+                </button>
+              ))}
+            </div>
+
+            <pre className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto max-h-60">
+              {exportSnippets[exportFormat]}
+            </pre>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-slate-500">Ready to paste into your codebase</span>
+              <button
+                type="button"
+                onClick={() => copyText(exportSnippets[exportFormat], 'export')}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                {copiedCode === 'export' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedCode === 'export' ? 'Copied!' : 'Copy Code'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Scoreboard */}
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="p-3 rounded-2xl bg-blue-50 dark:bg-[#121212] border border-blue-200 dark:border-white/10">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400 block">
-            {mode === 'ai' ? 'You (X)' : 'Player X'}
-          </span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">{score.x}</span>
-        </div>
-        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-            Ties
-          </span>
-          <span className="text-2xl font-black text-slate-800 dark:text-slate-200 font-mono">{score.ties}</span>
-        </div>
-        <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-[#121212] border border-emerald-200 dark:border-white/10">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-            {mode === 'ai' ? 'AI (O)' : 'Player O'}
-          </span>
-          <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">{score.o}</span>
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="max-w-[300px] mx-auto aspect-square grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-slate-100 dark:bg-[#121212] border border-slate-200 dark:border-white/10">
-        {board.map((cell, idx) => {
-          const isWinningCell = winInfo?.line.includes(idx);
-          return (
-            <button
-              key={idx}
-              type="button"
-              disabled={Boolean(cell || winInfo || (mode === 'ai' && !isXNext))}
-              onClick={() => handleSquareClick(idx)}
-              className={`aspect-square rounded-xl text-3xl font-extrabold flex items-center justify-center transition-all cursor-pointer border ${
-                isWinningCell
-                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-400 scale-105 shadow-md ring-2 ring-amber-400'
-                  : cell === 'X'
-                  ? 'bg-blue-50 dark:bg-sky-950/40 text-blue-600 dark:text-sky-400 border-blue-200 dark:border-sky-800/40'
-                  : cell === 'O'
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40'
-                  : 'bg-white dark:bg-[#1e1e1e] hover:bg-slate-50 dark:hover:bg-white/5 border-slate-200 dark:border-white/10 active:scale-95 shadow-2xs'
-              }`}
-            >
-              {cell}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Status & Restart */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-          {winInfo ? (
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-              {winInfo.winner === 'Tie' ? "It's a Draw!" : `Player ${winInfo.winner} Wins!`}
-            </span>
-          ) : (
-            <span>
-              Turn:{' '}
-              <strong className={isXNext ? 'text-blue-600 dark:text-sky-400' : 'text-emerald-600 dark:text-emerald-400'}>
-                {isXNext ? 'Player X' : mode === 'ai' ? 'AI Thinking...' : 'Player O'}
-              </strong>
-            </span>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={handleReset}
-          className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-white bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Board</span>
-        </button>
-      </div>
     </div>
   );
 };
 
 // =========================================================================
-// 3. CHROME DINO RUNNER
+// 2. CHROME DINO RUNNER WITH CLASSIC, MINIMAL, RETRO & CYBERPUNK THEMES
 // =========================================================================
+type DinoTheme = 'CLASSIC' | 'MINIMAL' | 'RETRO' | 'CYBERPUNK';
+
 const DinoRunnerGame: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [theme, setTheme] = useState<DinoTheme>('CLASSIC');
   const [gameState, setGameState] = useState<'START' | 'RUNNING' | 'GAMEOVER'>('START');
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() =>
@@ -546,17 +534,17 @@ const DinoRunnerGame: React.FC = () => {
       osc.connect(gain);
       gain.connect(ctx.destination);
       if (type === 'jump') {
-        osc.frequency.setValueAtTime(150, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(200, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + 0.1);
         gain.gain.setValueAtTime(0.12, ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.1);
         osc.start();
         osc.stop(ctx.currentTime + 0.1);
       } else if (type === 'die') {
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, ctx.currentTime);
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.25);
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.25);
         osc.start();
         osc.stop(ctx.currentTime + 0.25);
@@ -573,17 +561,28 @@ const DinoRunnerGame: React.FC = () => {
     if (!ctx) return;
 
     let animId: number;
-    let dinoY = 150;
+    let dinoY = 145;
     let dinoVy = 0;
-    const gravity = 0.65;
+    const gravity = 0.68;
     let isJumping = false;
-    let obstacles: { x: number; width: number; height: number }[] = [];
+    let obstacles: { x: number; width: number; height: number; type: 'single' | 'double' | 'tall' }[] = [];
+    let clouds: { x: number; y: number; speed: number }[] = [
+      { x: 100, y: 35, speed: 0.5 },
+      { x: 300, y: 55, speed: 0.4 },
+      { x: 520, y: 30, speed: 0.6 },
+    ];
+    let groundPoints: { x: number; y: number; w: number }[] = [];
+    for (let i = 0; i < 20; i++) {
+      groundPoints.push({ x: i * 35, y: 185 + Math.random() * 4, w: 2 + Math.random() * 4 });
+    }
+
     let currentScore = 0;
-    let speed = 5.5;
+    let speed = 5.8;
+    let legFrame = 0;
 
     const handleJump = () => {
       if (!isJumping && gameState === 'RUNNING') {
-        dinoVy = -12.5;
+        dinoVy = -12.8;
         isJumping = true;
         playAudio('jump');
       }
@@ -602,38 +601,190 @@ const DinoRunnerGame: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
 
+    // Theme color palettes
+    const getColors = () => {
+      if (theme === 'CLASSIC') {
+        return {
+          bg: '#f8fafc',
+          bgDark: '#171717',
+          dino: '#535353',
+          dinoDark: '#acacac',
+          cactus: '#535353',
+          cactusDark: '#acacac',
+          ground: '#737373',
+          cloud: '#d4d4d4',
+          cloudDark: '#404040',
+        };
+      }
+      if (theme === 'MINIMAL') {
+        return {
+          bg: '#ffffff',
+          bgDark: '#121212',
+          dino: '#2563eb',
+          dinoDark: '#38bdf8',
+          cactus: '#0f172a',
+          cactusDark: '#f8fafc',
+          ground: '#94a3b8',
+          cloud: '#e2e8f0',
+          cloudDark: '#262626',
+        };
+      }
+      if (theme === 'RETRO') {
+        return {
+          bg: '#051b0d',
+          bgDark: '#051b0d',
+          dino: '#22c55e',
+          dinoDark: '#22c55e',
+          cactus: '#16a34a',
+          cactusDark: '#16a34a',
+          ground: '#15803d',
+          cloud: '#14532d',
+          cloudDark: '#14532d',
+        };
+      }
+      // CYBERPUNK
+      return {
+        bg: '#090915',
+        bgDark: '#090915',
+        dino: '#00f0ff',
+        dinoDark: '#00f0ff',
+        cactus: '#ff007f',
+        cactusDark: '#ff007f',
+        ground: '#7928ca',
+        cloud: '#1e1b4b',
+        cloudDark: '#1e1b4b',
+      };
+    };
+
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const cols = getColors();
+    const dinoColor = isDarkMode ? cols.dinoDark : cols.dino;
+    const cactusColor = isDarkMode ? cols.cactusDark : cols.cactus;
+    const groundColor = cols.ground;
+    const cloudColor = isDarkMode ? cols.cloudDark : cols.cloud;
+
+    const drawPixelDino = (x: number, y: number, isAltLeg: boolean) => {
+      ctx.fillStyle = dinoColor;
+
+      // Authentic Pixelated T-Rex Chrome Sprite
+      // Head & Snout
+      ctx.fillRect(x + 12, y + 2, 16, 12);
+      ctx.fillRect(x + 14, y, 12, 4);
+
+      // Eye (cutout)
+      ctx.fillStyle = theme === 'CYBERPUNK' ? '#ff007f' : theme === 'RETRO' ? '#051b0d' : isDarkMode ? '#171717' : '#ffffff';
+      ctx.fillRect(x + 16, y + 4, 3, 3);
+      ctx.fillStyle = dinoColor;
+
+      // Snout nostrils & mouth line
+      ctx.fillRect(x + 24, y + 8, 4, 2);
+
+      // Neck & Body
+      ctx.fillRect(x + 8, y + 12, 12, 16);
+      ctx.fillRect(x + 4, y + 16, 16, 12);
+
+      // Tail
+      ctx.fillRect(x, y + 16, 4, 6);
+      ctx.fillRect(x - 4, y + 14, 4, 4);
+
+      // Tiny Arms
+      ctx.fillRect(x + 20, y + 16, 4, 4);
+
+      // Legs animation (alternating while running on ground)
+      if (isJumping) {
+        ctx.fillRect(x + 6, y + 28, 4, 7);
+        ctx.fillRect(x + 14, y + 28, 4, 5);
+      } else if (isAltLeg) {
+        ctx.fillRect(x + 6, y + 28, 4, 8);
+        ctx.fillRect(x + 14, y + 28, 4, 4);
+      } else {
+        ctx.fillRect(x + 6, y + 28, 4, 4);
+        ctx.fillRect(x + 14, y + 28, 4, 8);
+      }
+    };
+
+    const drawCactus = (obs: (typeof obstacles)[0]) => {
+      ctx.fillStyle = cactusColor;
+      const x = obs.x;
+      const h = obs.height;
+      const baseY = 185;
+
+      // Central stem
+      ctx.fillRect(x + 6, baseY - h, 8, h);
+
+      // Left arm
+      if (h > 24) {
+        ctx.fillRect(x, baseY - h + 8, 6, 4);
+        ctx.fillRect(x, baseY - h + 4, 4, 6);
+      }
+
+      // Right arm
+      if (h > 30) {
+        ctx.fillRect(x + 14, baseY - h + 12, 6, 4);
+        ctx.fillRect(x + 16, baseY - h + 6, 4, 8);
+      }
+    };
+
     const update = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw ground
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 2;
+      // Clouds in background
+      ctx.fillStyle = cloudColor;
+      clouds.forEach((cloud) => {
+        ctx.beginPath();
+        ctx.arc(cloud.x, cloud.y, 8, 0, Math.PI * 2);
+        ctx.arc(cloud.x + 8, cloud.y - 3, 10, 0, Math.PI * 2);
+        ctx.arc(cloud.x + 18, cloud.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (gameState === 'RUNNING') {
+          cloud.x -= cloud.speed;
+          if (cloud.x < -30) cloud.x = canvas.width + 20;
+        }
+      });
+
+      // Ground horizon
+      ctx.strokeStyle = groundColor;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(0, 185);
       ctx.lineTo(canvas.width, 185);
       ctx.stroke();
 
+      // Ground texture bumps
+      ctx.fillStyle = groundColor;
+      groundPoints.forEach((gp) => {
+        ctx.fillRect(gp.x, gp.y, gp.w, 1.5);
+        if (gameState === 'RUNNING') {
+          gp.x -= speed;
+          if (gp.x < 0) gp.x = canvas.width;
+        }
+      });
+
       if (gameState === 'RUNNING') {
         currentScore += 1;
         setScore(Math.floor(currentScore / 5));
 
+        legFrame += 1;
+
         // Physics
         dinoY += dinoVy;
         dinoVy += gravity;
-        if (dinoY >= 150) {
-          dinoY = 150;
+        if (dinoY >= 145) {
+          dinoY = 145;
           dinoVy = 0;
           isJumping = false;
         }
 
         // Spawn obstacles
-        if (Math.random() < 0.015 && obstacles.length < 3) {
+        if (Math.random() < 0.016 && obstacles.length < 3) {
           const lastObs = obstacles[obstacles.length - 1];
-          if (!lastObs || canvas.width - lastObs.x > 200) {
+          if (!lastObs || canvas.width - lastObs.x > 220) {
             obstacles.push({
               x: canvas.width,
-              width: 18 + Math.random() * 14,
-              height: 25 + Math.random() * 20,
+              width: 20,
+              height: 28 + Math.random() * 18,
+              type: Math.random() > 0.5 ? 'tall' : 'double',
             });
           }
         }
@@ -644,11 +795,11 @@ const DinoRunnerGame: React.FC = () => {
         });
         obstacles = obstacles.filter((o) => o.x > -40);
 
-        speed += 0.0005;
+        speed += 0.0006;
 
         // Collision check
         for (const obs of obstacles) {
-          const dinoBox = { x: 50, y: dinoY, w: 26, h: 35 };
+          const dinoBox = { x: 50, y: dinoY, w: 26, h: 36 };
           const obsBox = { x: obs.x, y: 185 - obs.height, w: obs.width, h: obs.height };
           if (
             dinoBox.x < obsBox.x + obsBox.w &&
@@ -668,25 +819,20 @@ const DinoRunnerGame: React.FC = () => {
         }
       }
 
-      // Draw Dino (Electric Blue)
-      ctx.fillStyle = '#2563eb';
-      ctx.beginPath();
-      ctx.roundRect(50, dinoY, 26, 35, 6);
-      ctx.fill();
+      // Draw Dino
+      const isAltLeg = Math.floor(legFrame / 6) % 2 === 0;
+      drawPixelDino(50, dinoY, isAltLeg);
 
-      // Eye
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(68, dinoY + 8, 3, 0, Math.PI * 2);
-      ctx.fill();
+      // Draw Obstacles
+      obstacles.forEach(drawCactus);
 
-      // Draw Obstacles (Emerald Green)
-      ctx.fillStyle = '#10b981';
-      obstacles.forEach((obs) => {
-        ctx.beginPath();
-        ctx.roundRect(obs.x, 185 - obs.height, obs.width, obs.height, 4);
-        ctx.fill();
-      });
+      // Scanlines effect for Retro & Cyberpunk
+      if (theme === 'RETRO' || theme === 'CYBERPUNK') {
+        ctx.fillStyle = theme === 'RETRO' ? 'rgba(0, 255, 0, 0.03)' : 'rgba(0, 240, 255, 0.03)';
+        for (let y = 0; y < canvas.height; y += 4) {
+          ctx.fillRect(0, y, canvas.width, 1);
+        }
+      }
 
       if (gameState === 'RUNNING') {
         animId = requestAnimationFrame(update);
@@ -703,7 +849,7 @@ const DinoRunnerGame: React.FC = () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [gameState, highScore, soundEnabled]);
+  }, [gameState, highScore, soundEnabled, theme]);
 
   const startGame = () => {
     setScore(0);
@@ -718,27 +864,35 @@ const DinoRunnerGame: React.FC = () => {
     }
   };
 
+  const themesList: { id: DinoTheme; label: string; icon: any }[] = [
+    { id: 'CLASSIC', label: 'Classic Chrome', icon: Monitor },
+    { id: 'MINIMAL', label: 'Minimalist', icon: Sparkles },
+    { id: 'RETRO', label: '8-Bit CRT', icon: Cpu },
+    { id: 'CYBERPUNK', label: 'Cyberpunk Neon', icon: Zap },
+  ];
+
   return (
-    <div className="bg-card-theme border border-card-theme text-primary-theme rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left">
+    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left transition-colors">
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400 block mb-1">
-            Classic Retro Runner
+            Endless Pixel Runner
           </span>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Chrome Dino Runner</h2>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-2 rounded-full bg-slate-100 dark:bg-[#121212] hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+            className="p-2 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
             title={soundEnabled ? 'Mute Sound' : 'Enable Sound'}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
-          <div className="flex items-center gap-3 bg-slate-900 dark:bg-[#121212] text-white px-4 py-2 rounded-2xl font-mono text-sm shadow-xs border border-transparent dark:border-white/10">
+          <div className="flex items-center gap-3 bg-slate-900 dark:bg-[#121212] text-white px-4 py-2 rounded-2xl font-mono text-xs sm:text-sm shadow-xs border border-transparent dark:border-white/10">
             <span className="text-slate-400 text-xs flex items-center gap-1">
               <Trophy className="w-3.5 h-3.5 text-amber-400" />
               <span>HI</span>
@@ -750,10 +904,42 @@ const DinoRunnerGame: React.FC = () => {
         </div>
       </div>
 
-      {/* Canvas Area */}
+      {/* Theme Selector Bar */}
+      <div className="flex flex-wrap items-center gap-2 pt-1 pb-1 border-b border-slate-100 dark:border-white/5">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-2">
+          Theme:
+        </span>
+        {themesList.map((t) => {
+          const Icon = t.icon;
+          const isCurrent = theme === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTheme(t.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                isCurrent
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Canvas Area with Theme-Adaptive Background */}
       <div
         onClick={handleMobileTap}
-        className="relative bg-slate-100 dark:bg-[#121212] rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-inner cursor-pointer select-none"
+        className={`relative rounded-2xl overflow-hidden border shadow-inner cursor-pointer select-none transition-colors ${
+          theme === 'RETRO'
+            ? 'bg-[#051b0d] border-emerald-900 shadow-emerald-950/50'
+            : theme === 'CYBERPUNK'
+            ? 'bg-[#090915] border-purple-900 shadow-purple-950/50'
+            : 'bg-slate-100 dark:bg-[#141414] border-slate-200 dark:border-white/10'
+        }`}
       >
         <canvas ref={canvasRef} width={640} height={200} className="w-full h-[200px] object-contain block" />
 
@@ -764,7 +950,7 @@ const DinoRunnerGame: React.FC = () => {
             </div>
             <h3 className="text-lg font-bold mb-1">Tap Screen or Press Space to Jump!</h3>
             <p className="text-xs text-slate-200 max-w-xs">
-              Dodge cactus obstacles to beat the high score.
+              Dodge cactus obstacles to set a new record.
             </p>
           </div>
         )}
@@ -791,31 +977,37 @@ const DinoRunnerGame: React.FC = () => {
         <button
           type="button"
           onClick={handleMobileTap}
-          className="w-full py-3 rounded-2xl bg-blue-600 active:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 rounded-2xl bg-blue-600 active:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 cursor-pointer"
         >
           <ChevronUp className="w-4 h-4" />
           <span>{gameState === 'RUNNING' ? 'TAP TO JUMP' : 'START / RESTART'}</span>
         </button>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-        <span>Desktop: Press <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-white/10 rounded text-slate-800 dark:text-slate-200 font-mono">Space</kbd> or <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-white/10 rounded text-slate-800 dark:text-slate-200 font-mono">↑</kbd> to jump.</span>
-        <span>Mobile: Tap the canvas or button above.</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
+        <span>Desktop: Press <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-white/10 rounded font-mono">Space</kbd> or <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-white/10 rounded font-mono">↑</kbd> to jump.</span>
+        <span>Mobile: Tap the canvas or the button above.</span>
       </div>
     </div>
   );
 };
 
 // =========================================================================
-// 4. RETRO SNAKE GAME
+// 3. SNAKE GAME WITH CLASSIC (NOKIA), RETRO, MINIMAL & FUTURISTIC THEMES
 // =========================================================================
+type SnakeTheme = 'CLASSIC' | 'RETRO' | 'MINIMAL' | 'FUTURISTIC';
+
 const SnakeGame: React.FC = () => {
+  const [theme, setTheme] = useState<SnakeTheme>('CLASSIC');
   const [snake, setSnake] = useState([{ x: 10, y: 10 }]);
   const [food, setFood] = useState({ x: 5, y: 5 });
   const [dir, setDir] = useState<'UP' | 'DOWN' | 'LEFT' | 'RIGHT'>('RIGHT');
   const [running, setRunning] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
+  const [bestScore, setBestScore] = useState(() =>
+    parseInt(localStorage.getItem('as_snake_high_score') || '0', 10)
+  );
 
   const GRID_SIZE = 20;
 
@@ -844,7 +1036,14 @@ const SnakeGame: React.FC = () => {
 
         const next = [head, ...prev];
         if (head.x === food.x && head.y === food.y) {
-          setScore((s) => s + 10);
+          setScore((s) => {
+            const newScore = s + 10;
+            if (newScore > bestScore) {
+              setBestScore(newScore);
+              localStorage.setItem('as_snake_high_score', newScore.toString());
+            }
+            return newScore;
+          });
           setFood({
             x: Math.floor(Math.random() * GRID_SIZE),
             y: Math.floor(Math.random() * GRID_SIZE),
@@ -854,10 +1053,10 @@ const SnakeGame: React.FC = () => {
         }
         return next;
       });
-    }, 120);
+    }, 115);
 
     return () => clearInterval(interval);
-  }, [running, gameOver, dir, food]);
+  }, [running, gameOver, dir, food, bestScore]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -879,22 +1078,74 @@ const SnakeGame: React.FC = () => {
     setRunning(true);
   };
 
+  const themesList: { id: SnakeTheme; label: string; icon: any }[] = [
+    { id: 'CLASSIC', label: 'Classic Nokia 3310', icon: Monitor },
+    { id: 'RETRO', label: '8-Bit Arcade', icon: Gamepad2 },
+    { id: 'MINIMAL', label: 'Modern Minimal', icon: Sparkles },
+    { id: 'FUTURISTIC', label: 'Futuristic Cyber', icon: Zap },
+  ];
+
   return (
-    <div className="bg-card-theme border border-card-theme text-primary-theme rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left">
-      <div className="flex items-center justify-between">
+    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left transition-colors">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400 block mb-1">
-            Retro Classic
+            Iconic Grid Arcade
           </span>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Snake Arcade</h2>
         </div>
-        <div className="bg-slate-900 dark:bg-[#121212] text-white px-4 py-1.5 rounded-full font-mono text-sm font-bold border border-transparent dark:border-white/10">
-          Score: {score}
+
+        <div className="flex items-center gap-3">
+          <div className="bg-slate-900 dark:bg-[#121212] text-white px-4 py-1.5 rounded-full font-mono text-xs sm:text-sm font-bold border border-transparent dark:border-white/10 flex items-center gap-2">
+            <span className="text-amber-400 flex items-center gap-1">
+              <Trophy className="w-3.5 h-3.5" />
+              <span>BEST: {bestScore}</span>
+            </span>
+            <span className="text-slate-600">|</span>
+            <span>SCORE: {score}</span>
+          </div>
         </div>
       </div>
 
-      {/* Snake Board Container - Clean dark slate that looks great in both themes */}
-      <div className="relative max-w-[320px] mx-auto aspect-square bg-[#1e293b] dark:bg-[#141414] rounded-2xl overflow-hidden border-4 border-slate-300 dark:border-white/10 shadow-md">
+      {/* Theme Switcher Bar */}
+      <div className="flex flex-wrap items-center gap-2 pt-1 pb-1 border-b border-slate-100 dark:border-white/5">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-2">
+          Theme:
+        </span>
+        {themesList.map((t) => {
+          const Icon = t.icon;
+          const isCurrent = theme === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTheme(t.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                isCurrent
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Snake Grid Board Container */}
+      <div
+        className={`relative max-w-[340px] mx-auto aspect-square rounded-2xl overflow-hidden border-4 shadow-md transition-colors ${
+          theme === 'CLASSIC'
+            ? 'bg-[#9bbc0f] border-[#8bac0f] text-[#0f380f]'
+            : theme === 'RETRO'
+            ? 'bg-[#1e1b4b] border-indigo-900 shadow-indigo-950/50'
+            : theme === 'FUTURISTIC'
+            ? 'bg-[#050510] border-cyan-500/40 shadow-cyan-950/50'
+            : 'bg-[#1e293b] dark:bg-[#141414] border-slate-300 dark:border-white/10'
+        }`}
+      >
         <div
           className="w-full h-full grid"
           style={{
@@ -909,18 +1160,32 @@ const SnakeGame: React.FC = () => {
             const isBody = snake.slice(1).some((s) => s.x === x && s.y === y);
             const isFood = food.x === x && food.y === y;
 
+            let cellClass = 'bg-transparent';
+            if (theme === 'CLASSIC') {
+              if (isHead) cellClass = 'bg-[#0f380f] rounded-xs';
+              else if (isBody) cellClass = 'bg-[#306230] rounded-xs';
+              else if (isFood) cellClass = 'bg-[#0f380f] animate-pulse';
+            } else if (theme === 'RETRO') {
+              if (isHead) cellClass = 'bg-amber-400 rounded-sm shadow-xs shadow-amber-400';
+              else if (isBody) cellClass = 'bg-emerald-400 rounded-xs';
+              else if (isFood) cellClass = 'bg-rose-500 rounded-full animate-bounce';
+            } else if (theme === 'FUTURISTIC') {
+              if (isHead) cellClass = 'bg-cyan-400 rounded-sm shadow-md shadow-cyan-400';
+              else if (isBody) cellClass = 'bg-pink-500 rounded-xs shadow-xs shadow-pink-500/50';
+              else if (isFood) cellClass = 'bg-yellow-300 rounded-full animate-pulse shadow-md shadow-yellow-300';
+            } else {
+              // MINIMAL
+              if (isHead) cellClass = 'bg-sky-400 rounded-sm';
+              else if (isBody) cellClass = 'bg-blue-600 rounded-xs';
+              else if (isFood) cellClass = 'bg-emerald-400 rounded-full animate-pulse shadow-xs shadow-emerald-400';
+            }
+
             return (
               <div
                 key={i}
-                className={
-                  isHead
-                    ? 'bg-sky-400 rounded-sm'
-                    : isBody
-                    ? 'bg-blue-600 rounded-xs'
-                    : isFood
-                    ? 'bg-emerald-400 rounded-full animate-pulse shadow-xs shadow-emerald-400'
-                    : 'bg-transparent border-[0.5px] border-white/[0.03]'
-                }
+                className={`${cellClass} ${
+                  theme === 'CLASSIC' ? 'border-[0.5px] border-[#8bac0f]/30' : 'border-[0.5px] border-white/[0.03]'
+                }`}
               />
             );
           })}
@@ -928,25 +1193,25 @@ const SnakeGame: React.FC = () => {
 
         {!running && (
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center text-white p-4 text-center">
-            {gameOver && <p className="text-rose-400 font-bold text-sm mb-2">Game Over!</p>}
+            {gameOver && <p className="text-rose-400 font-bold text-sm mb-2">Game Over! Score: {score}</p>}
             <button
               type="button"
               onClick={handleRestart}
-              className="px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wider shadow-md cursor-pointer"
+              className="px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wider shadow-md cursor-pointer transition-all active:scale-95"
             >
-              {gameOver ? 'Play Again' : 'Start Snake'}
+              {gameOver ? 'Play Again' : 'Start Game'}
             </button>
           </div>
         )}
       </div>
 
-      {/* D-Pad Controls with accessible min-44px targets */}
+      {/* D-Pad Controls for Mobile & Touch */}
       <div className="flex flex-col items-center gap-1.5 pt-2">
         <button
           type="button"
           onClick={() => dir !== 'DOWN' && setDir('UP')}
           aria-label="Move Up"
-          className="w-14 h-11 rounded-xl bg-slate-100 dark:bg-[#121212] hover:bg-slate-200 dark:hover:bg-white/10 active:bg-blue-600 active:text-white text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center cursor-pointer transition-colors"
+          className="w-14 h-11 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 active:bg-blue-600 active:text-white text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center cursor-pointer transition-colors"
         >
           <ChevronUp className="w-5 h-5" />
         </button>
@@ -955,7 +1220,7 @@ const SnakeGame: React.FC = () => {
             type="button"
             onClick={() => dir !== 'RIGHT' && setDir('LEFT')}
             aria-label="Move Left"
-            className="w-14 h-11 rounded-xl bg-slate-100 dark:bg-[#121212] hover:bg-slate-200 dark:hover:bg-white/10 active:bg-blue-600 active:text-white text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center cursor-pointer transition-colors"
+            className="w-14 h-11 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 active:bg-blue-600 active:text-white text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center cursor-pointer transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -963,7 +1228,7 @@ const SnakeGame: React.FC = () => {
             type="button"
             onClick={() => dir !== 'UP' && setDir('DOWN')}
             aria-label="Move Down"
-            className="w-14 h-11 rounded-xl bg-slate-100 dark:bg-[#121212] hover:bg-slate-200 dark:hover:bg-white/10 active:bg-blue-600 active:text-white text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center cursor-pointer transition-colors"
+            className="w-14 h-11 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 active:bg-blue-600 active:text-white text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center cursor-pointer transition-colors"
           >
             <ChevronDown className="w-5 h-5" />
           </button>
@@ -971,7 +1236,7 @@ const SnakeGame: React.FC = () => {
             type="button"
             onClick={() => dir !== 'LEFT' && setDir('RIGHT')}
             aria-label="Move Right"
-            className="w-14 h-11 rounded-xl bg-slate-100 dark:bg-[#121212] hover:bg-slate-200 dark:hover:bg-white/10 active:bg-blue-600 active:text-white text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center cursor-pointer transition-colors"
+            className="w-14 h-11 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 active:bg-blue-600 active:text-white text-slate-800 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center cursor-pointer transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -982,7 +1247,7 @@ const SnakeGame: React.FC = () => {
 };
 
 // =========================================================================
-// 5. NEPAL BIKRAM SAMBAT DATE CONVERTER TOOL
+// 4. NEPAL BIKRAM SAMBAT (B.S.) DATE CONVERTER TOOL
 // =========================================================================
 const DateConverterTool: React.FC = () => {
   const [adDate, setAdDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -1014,14 +1279,14 @@ const DateConverterTool: React.FC = () => {
   };
 
   return (
-    <div className="bg-card-theme border border-card-theme text-primary-theme rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left">
+    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left transition-colors">
       <div>
         <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400 block mb-1">
           Nepal Regional Utility
         </span>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Bikram Sambat (BS) Date Converter</h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Fast reference calculator between Gregorian (AD) and Nepal National Calendar (B.S.).
+          Instant calculation between Gregorian (AD) and Nepal National Calendar (B.S.).
         </p>
       </div>
 

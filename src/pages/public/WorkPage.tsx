@@ -5,6 +5,7 @@ import { updateSEO } from '../../lib/seo';
 import { trackEvent } from '../../lib/analytics';
 import { Project } from '../../types/database';
 import { SpotlightCard } from '../../components/public/SpotlightCard';
+import { ProjectGridSkeleton } from '../../components/public/Skeletons';
 import {
   Search,
   ArrowRight,
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const WorkPage: React.FC = () => {
-  const { profile, projects, cookieConsent } = useData();
+  const { profile, projects, cookieConsent, isLoading } = useData();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeModalProject, setActiveModalProject] = useState<Project | null>(null);
@@ -109,7 +110,9 @@ export const WorkPage: React.FC = () => {
       </div>
 
       {/* Projects Grid */}
-      {filteredProjects.length === 0 ? (
+      {isLoading && projects.length === 0 ? (
+        <ProjectGridSkeleton count={6} />
+      ) : filteredProjects.length === 0 ? (
         <SpotlightCard className="p-12 text-center max-w-md mx-auto space-y-3">
           <p className="text-sm font-semibold text-slate-900 dark:text-white">No projects found</p>
           <p className="text-xs text-slate-500">

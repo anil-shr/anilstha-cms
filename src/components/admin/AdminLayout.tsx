@@ -49,7 +49,9 @@ export const AdminLayout: React.FC<{
   useEffect(() => {
     let hasStoredAdmin = false;
     try {
-      const stored = localStorage.getItem('as_admin_auth');
+      const stored =
+        localStorage.getItem('as_portfolio_auth_user') ||
+        localStorage.getItem('as_admin_auth');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.role === 'admin') hasStoredAdmin = true;
@@ -65,7 +67,9 @@ export const AdminLayout: React.FC<{
     typeof window !== 'undefined' &&
     (() => {
       try {
-        const stored = localStorage.getItem('as_admin_auth');
+        const stored =
+          localStorage.getItem('as_portfolio_auth_user') ||
+          localStorage.getItem('as_admin_auth');
         return stored ? JSON.parse(stored)?.role === 'admin' : false;
       } catch {
         return false;

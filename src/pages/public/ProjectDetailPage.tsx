@@ -4,11 +4,12 @@ import { useData } from '../../context/DataContext';
 import { updateSEO } from '../../lib/seo';
 import { trackEvent } from '../../lib/analytics';
 import { SpotlightCard } from '../../components/public/SpotlightCard';
+import { ProjectDetailSkeleton } from '../../components/public/Skeletons';
 import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react';
 
 export const ProjectDetailPage: React.FC = () => {
   const { params } = useRouter();
-  const { projects, profile, cookieConsent } = useData();
+  const { projects, profile, cookieConsent, isLoading } = useData();
 
   const slug = params.slug;
   const project = projects.find((p) => p.slug === slug);
@@ -37,6 +38,10 @@ export const ProjectDetailPage: React.FC = () => {
       );
     }
   }, [project, profile, cookieConsent.analytics]);
+
+  if (isLoading && !project) {
+    return <ProjectDetailSkeleton />;
+  }
 
   if (!project) {
     return (

@@ -10,13 +10,15 @@ import {
   AlertCircle,
   FileText,
   ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 
 export const MediaLibraryPage: React.FC = () => {
-  const { media, addMediaItem, deleteMediaItem } = useData();
+  const { media, deleteMediaItem, uploadMediaFile } = useData();
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<MediaItem | null>(null);
 
   // Allowed MIME types and extensions
@@ -31,72 +33,46 @@ export const MediaLibraryPage: React.FC = () => {
 
   const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.svg', '.pdf'];
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    setUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
 
-      // File size limit: 10MB
-      if (file.size > 10 * 1024 * 1024) {
-        setUploadError(`File "${file.name}" exceeds the maximum 10MB limit.`);
-        continue;
-      }
-
-      // MIME validation
-      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-        setUploadError(`File "${file.name}" has an unsupported MIME type (${file.type}). Allowed: JPEG, PNG, WEBP, AVIF, SVG, PDF.`);
-        continue;
-      }
-
-      // Extension validation
-      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (!ALLOWED_EXTENSIONS.includes(ext)) {
-        setUploadError(`File extension "${ext}" is not permitted.`);
-        continue;
-      }
-
-      // Read file and create persistent data URL or object URL
-      const reader = new FileReader();
-      reader.onload = () => {
-        const resultUrl = reader.result as string;
-
-        // Image dimensions resolution
-        let dimensions = 'Unknown';
-        if (file.type.startsWith('image/')) {
-          const img = new Image();
-          img.src = resultUrl;
-          img.onload = () => {
-            dimensions = `${img.width}x${img.height}`;
-            createAndSaveMedia(file, resultUrl, dimensions);
-          };
-          img.onerror = () => {
-            createAndSaveMedia(file, resultUrl, 'Standard');
-          };
-        } else {
-          createAndSaveMedia(file, resultUrl, 'Document');
+        // File size limit: 10MB
+        if (file.size > 10 * 1024 * 1024) {
+          setUploadError(`File "${file.name}" exceeds the maximum 10MB limit.`);
+          continue;
         }
-      };
-      reader.readAsDataURL(file);
-    }
-    e.target.value = '';
-  };
 
-  const createAndSaveMedia = (file: File, url: string, dimensions: string) => {
-    const newItem: MediaItem = {
-      id: 'med-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-      filename: file.name.replace(/[^a-zA-Z0-9._-]/g, '_'),
-      original_name: file.name,
-      url,
-      file_size: file.size,
-      mime_type: file.type,
-      dimensions,
-      alt_text: file.name.split('.')[0].replace(/[_-]/g, ' '),
-      created_at: new Date().toISOString(),
-    };
-    addMediaItem(newItem);
+        // MIME validation
+        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+          setUploadError(
+            `File "${file.name}" has an unsupported MIME type (${file.type}). Allowed: JPEG, PNG, WEBP, AVIF, SVG, PDF.`
+          );
+          continue;
+        }
+
+        // Extension validation
+        const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(ext)) {
+          setUploadError(`File extension "${ext}" is not permitted.`);
+          continue;
+        }
+
+        const res = await uploadMediaFile(file);
+        if (!res.success && res.error) {
+          setUploadError(res.error);
+        }
+      }
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleCopyUrl = (item: MediaItem) => {
@@ -128,11 +104,23 @@ export const MediaLibraryPage: React.FC = () => {
             </p>
           </div>
 
-          <label className="inline-block px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md shadow-blue-600/25 transition-all cursor-pointer">
-            <span>Browse Storage</span>
+          <label
+            className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md shadow-blue-600/25 transition-all cursor-pointer ${
+              uploading ? 'opacity-60 cursor-not-allowed' : ''
+            }`}
+          >
+            {uploading ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Uploading to Supabase...</span>
+              </>
+            ) : (
+              <span>Browse Storage</span>
+            )}
             <input
               type="file"
               multiple
+              disabled={uploading}
               accept="image/jpeg,image/png,image/webp,image/avif,image/svg+xml,application/pdf"
               onChange={handleFileUpload}
               className="hidden"

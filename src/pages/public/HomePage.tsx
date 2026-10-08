@@ -6,6 +6,7 @@ import { trackEvent } from '../../lib/analytics';
 import { Project } from '../../types/database';
 import { SpotlightCard } from '../../components/public/SpotlightCard';
 import { SocialIcon } from '../../components/public/SocialIcon';
+import { ProjectCardSkeleton } from '../../components/public/Skeletons';
 import {
   Palette,
   Layout,
@@ -21,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
-  const { profile, projects, socialLinks, cookieConsent } = useData();
+  const { profile, projects, socialLinks, cookieConsent, isLoading } = useData();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [activeModalProject, setActiveModalProject] = useState<Project | null>(null);
 
@@ -296,7 +297,9 @@ export const HomePage: React.FC = () => {
 
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProjects.map((project) => (
+          {isLoading && projects.length === 0
+            ? Array.from({ length: 3 }).map((_, idx) => <ProjectCardSkeleton key={idx} />)
+            : filteredProjects.map((project) => (
             <SpotlightCard key={project.id} className="group flex flex-col justify-between">
               <div>
                 {/* Project Cover */}
