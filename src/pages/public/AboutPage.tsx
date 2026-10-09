@@ -54,7 +54,7 @@ export const AboutPage: React.FC = () => {
           <SpotlightCard className="p-3">
             <div className="aspect-[4/5] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10">
               <img
-                src={portraitImg}
+                src={profile.profile_image_url || portraitImg}
                 alt={profile.name || 'Anil Shrestha'}
                 loading="lazy"
                 className="w-full h-full object-cover object-top transition-transform duration-500 hover:scale-105"

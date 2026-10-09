@@ -153,19 +153,33 @@ export const Navbar: React.FC<{
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end bg-black/60 backdrop-blur-xs transition-all">
-          <div className="bg-white dark:bg-[#18181b] border-t border-slate-200 dark:border-white/10 rounded-t-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end bg-black/60 backdrop-blur-xs transition-all"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-[#18181b] border-t border-slate-200 dark:border-white/10 rounded-t-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#111111] dark:bg-white text-white dark:text-slate-950 flex items-center justify-center font-bold text-xs">
-                  AS
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    {profile.name || 'Anil Shrestha'}
+                {siteSettings?.logo_url ? (
+                  <img
+                    src={siteSettings.logo_url}
+                    alt={brandTitle}
+                    className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-[#111111] dark:bg-white text-white dark:text-slate-950 flex items-center justify-center font-bold text-xs shrink-0">
+                    {siteSettings?.logo_text || 'AS'}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {brandTitle}
                   </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Graphic Designer & UI/UX Specialist
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {profile.profession || 'Graphic Designer & UI/UX Specialist'}
                   </p>
                 </div>
               </div>

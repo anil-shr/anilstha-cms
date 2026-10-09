@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { updateSEO } from '../../lib/seo';
 import { NepaliDateConverter } from '../../components/public/NepaliDateConverter';
+import { ReactionRushGame } from '../../components/public/arcade/ReactionRushGame';
+import { PixelArtCreator } from '../../components/public/arcade/PixelArtCreator';
+import { TicTacToeGame } from '../../components/public/arcade/TicTacToeGame';
+import { FlexboxChallenge } from '../../components/public/arcade/FlexboxChallenge';
 import {
   Gamepad2,
   Palette,
@@ -27,6 +31,7 @@ import {
   Cpu,
   Monitor,
   Zap,
+  Grid,
 } from 'lucide-react';
 
 export const ArcadePage: React.FC = () => {
@@ -34,15 +39,23 @@ export const ArcadePage: React.FC = () => {
     updateSEO({
       title: 'Games & Creative Tools — Anil Shrestha',
       description:
-        'Interactive designer arcade playground featuring Chrome Dino Runner with classic/minimal/retro/cyberpunk themes, Snake Game, Color Palette Generator with live UI preview, and Nepal BS Date Converter.',
+        'Interactive designer arcade playground featuring Reaction Rush, Pixel Art Creator, Tic-Tac-Toe, CSS Flexbox Challenge, Chrome Dino Runner, Snake Game, Color Palette Studio, and Nepal BS Date Converter.',
       canonicalUrl: 'https://anilshrestha11.com.np/arcade',
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'PALETTE' | 'DINO' | 'SNAKE' | 'DATE'>(() => {
+  const [activeTab, setActiveTab] = useState<
+    'PALETTE' | 'DINO' | 'SNAKE' | 'REACTION' | 'PIXEL' | 'TICTACTOE' | 'FLEXBOX' | 'DATE'
+  >(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
+      if (hash.includes('reaction') || search.includes('reaction')) return 'REACTION';
+      if (hash.includes('pixel') || search.includes('pixel')) return 'PIXEL';
+      if (hash.includes('tic') || search.includes('tic')) return 'TICTACTOE';
+      if (hash.includes('flex') || search.includes('flex')) return 'FLEXBOX';
+      if (hash.includes('dino') || search.includes('dino')) return 'DINO';
+      if (hash.includes('snake') || search.includes('snake')) return 'SNAKE';
       if (
         hash.includes('date') ||
         hash.includes('converter') ||
@@ -58,6 +71,10 @@ export const ArcadePage: React.FC = () => {
 
   const tabs = [
     { id: 'PALETTE' as const, label: 'Color Palette Studio', icon: Palette },
+    { id: 'REACTION' as const, label: 'Reaction Rush', icon: Zap },
+    { id: 'PIXEL' as const, label: 'Pixel Art Creator', icon: Grid },
+    { id: 'TICTACTOE' as const, label: 'Tic-Tac-Toe', icon: Trophy },
+    { id: 'FLEXBOX' as const, label: 'Flexbox Challenge', icon: Code },
     { id: 'DINO' as const, label: 'Chrome Dino Runner', icon: Play },
     { id: 'SNAKE' as const, label: 'Snake Arcade', icon: Sparkles },
     { id: 'DATE' as const, label: 'Nepal BS Date', icon: Calendar },
@@ -75,13 +92,13 @@ export const ArcadePage: React.FC = () => {
           Games & Creative Tools
         </h1>
         <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
-          Take a creative break. Explore responsive browser mini-games with authentic themes, color design utilities, and regional date converters.
+          Take a creative break. Explore responsive browser mini-games with authentic themes, pixel art creation, flexbox challenges, color design utilities, and regional date converters.
         </p>
       </div>
 
       {/* Responsive Horizontal Tab Bar */}
-      <div className="max-w-2xl mx-auto overflow-x-auto no-scrollbar py-1">
-        <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl sm:rounded-full bg-slate-100 dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 shadow-xs min-w-full sm:min-w-0 justify-start sm:justify-center">
+      <div className="w-full overflow-x-auto no-scrollbar py-1">
+        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 shadow-xs w-max min-w-full sm:min-w-0 sm:justify-center mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -90,13 +107,13 @@ export const ArcadePage: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span>{tab.label}</span>
               </button>
             );
@@ -107,6 +124,10 @@ export const ArcadePage: React.FC = () => {
       {/* Active Tool/Game Container */}
       <div className="w-full">
         {activeTab === 'PALETTE' && <ColorPaletteStudio />}
+        {activeTab === 'REACTION' && <ReactionRushGame />}
+        {activeTab === 'PIXEL' && <PixelArtCreator />}
+        {activeTab === 'TICTACTOE' && <TicTacToeGame />}
+        {activeTab === 'FLEXBOX' && <FlexboxChallenge />}
         {activeTab === 'DINO' && <DinoRunnerGame />}
         {activeTab === 'SNAKE' && <SnakeGame />}
         {activeTab === 'DATE' && <DateConverterTool />}

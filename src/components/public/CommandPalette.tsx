@@ -20,6 +20,11 @@ import {
   X,
   ExternalLink,
   Calendar,
+  Zap,
+  Grid,
+  Trophy,
+  Code,
+  Palette,
 } from 'lucide-react';
 
 export const CommandPalette: React.FC<{
@@ -51,7 +56,14 @@ export const CommandPalette: React.FC<{
     { label: 'About Anil', subtitle: 'Creative director bio & background in Nepal', path: '/about', icon: User, category: 'Pages' },
     { label: 'Professional Resume', subtitle: 'Curriculum vitae & career timeline', path: '/resume', icon: FileText, category: 'Pages' },
     { label: 'Nepali Date Converter (B.S. ↔ A.D.)', subtitle: 'Live Nepal timezone, Bikram Sambat & Gregorian converter', path: '/arcade#date', icon: Calendar, category: 'Tools' },
-    { label: 'Games & Creative Tools', subtitle: 'Chrome Dino, Snake, Palette Generator & BS Date', path: '/arcade', icon: Gamepad2, category: 'Pages' },
+    { label: 'Reaction Rush', subtitle: 'Test your reaction latency & reflexes in milliseconds', path: '/arcade#reaction', icon: Zap, category: 'Games' },
+    { label: 'Pixel Art Creator', subtitle: 'Draw pixel art, flood fill & export high-res PNG', path: '/arcade#pixel', icon: Grid, category: 'Tools' },
+    { label: 'Tic-Tac-Toe', subtitle: 'Play vs Unbeatable AI or 2-player local PvP', path: '/arcade#tictactoe', icon: Trophy, category: 'Games' },
+    { label: 'CSS Flexbox Challenge', subtitle: 'Interactive puzzle game to master flexbox layouts', path: '/arcade#flexbox', icon: Code, category: 'Games' },
+    { label: 'Color Palette Studio', subtitle: 'Generate harmonious color palettes & copy hex codes', path: '/arcade#palette', icon: Palette, category: 'Tools' },
+    { label: 'Chrome Dino Runner', subtitle: 'Jump over cactuses and pterodactyls', path: '/arcade#dino', icon: Gamepad2, category: 'Games' },
+    { label: 'Snake Arcade', subtitle: 'Classic retro snake game with high scores', path: '/arcade#snake', icon: Sparkles, category: 'Games' },
+    { label: 'Games & Creative Tools', subtitle: 'All interactive mini-games and utilities', path: '/arcade', icon: Gamepad2, category: 'Pages' },
     { label: 'Contact Studio', subtitle: 'Inquire for freelance projects or employment', path: '/contact', icon: Mail, category: 'Pages' },
     { label: 'CMS Admin Dashboard', subtitle: 'Manage portfolio content remotely', path: '/admin', icon: Shield, category: 'Admin' },
   ];

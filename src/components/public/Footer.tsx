@@ -7,10 +7,11 @@ import { Mail, MapPin, ArrowUpRight } from 'lucide-react';
 export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
   onOpenCookieSettings,
 }) => {
-  const { profile, socialLinks } = useData();
+  const { profile, socialLinks, siteSettings } = useData();
   const currentYear = new Date().getFullYear();
 
   const activeSocials = socialLinks.filter((s) => s.active);
+  const brandName = siteSettings?.fav_name || profile.name || 'Anil Shrestha';
 
   return (
     <footer className="mt-20 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#121212] text-slate-600 dark:text-slate-400 transition-colors">
@@ -19,11 +20,19 @@ export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
           {/* Brand & Designer Info */}
           <div className="md:col-span-5 space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#0a0c10] dark:bg-white text-white dark:text-[#0a0c10] flex items-center justify-center font-bold text-xs tracking-tight">
-                AS
-              </div>
+              {siteSettings?.logo_url ? (
+                <img
+                  src={siteSettings.logo_url}
+                  alt={brandName}
+                  className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-[#0a0c10] dark:bg-white text-white dark:text-[#0a0c10] flex items-center justify-center font-bold text-xs tracking-tight shrink-0">
+                  {siteSettings?.logo_text || 'AS'}
+                </div>
+              )}
               <span className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                {profile.name || 'Anil Shrestha'}
+                {brandName}
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm">
@@ -103,7 +112,7 @@ export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
         {/* Bottom row (Zero admin links as requested) */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div>
-            © {currentYear} {profile.name || 'Anil Shrestha'}. All rights reserved.
+            © {currentYear} {brandName}. All rights reserved.
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <Link to="/privacy" className="hover:text-slate-800 dark:hover:text-slate-300 transition-colors">Privacy</Link>
