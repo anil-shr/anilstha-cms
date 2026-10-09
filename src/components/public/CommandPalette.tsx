@@ -19,6 +19,7 @@ import {
   Command,
   X,
   ExternalLink,
+  Calendar,
 } from 'lucide-react';
 
 export const CommandPalette: React.FC<{
@@ -49,6 +50,7 @@ export const CommandPalette: React.FC<{
     { label: 'Technical Proficiencies', subtitle: 'Design tools, disciplines & software', path: '/skills', icon: Wrench, category: 'Pages' },
     { label: 'About Anil', subtitle: 'Creative director bio & background in Nepal', path: '/about', icon: User, category: 'Pages' },
     { label: 'Professional Resume', subtitle: 'Curriculum vitae & career timeline', path: '/resume', icon: FileText, category: 'Pages' },
+    { label: 'Nepali Date Converter (B.S. ↔ A.D.)', subtitle: 'Live Nepal timezone, Bikram Sambat & Gregorian converter', path: '/arcade#date', icon: Calendar, category: 'Tools' },
     { label: 'Games & Creative Tools', subtitle: 'Chrome Dino, Snake, Palette Generator & BS Date', path: '/arcade', icon: Gamepad2, category: 'Pages' },
     { label: 'Contact Studio', subtitle: 'Inquire for freelance projects or employment', path: '/contact', icon: Mail, category: 'Pages' },
     { label: 'CMS Admin Dashboard', subtitle: 'Manage portfolio content remotely', path: '/admin', icon: Shield, category: 'Admin' },

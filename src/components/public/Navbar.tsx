@@ -15,7 +15,7 @@ export const Navbar: React.FC<{
   onOpenCommandPalette?: () => void;
 }> = ({ onOpenCommandPalette }) => {
   const { path, navigate } = useRouter();
-  const { profile } = useData();
+  const { profile, siteSettings } = useData();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clickCount, setClickCount] = useState(0);
@@ -44,6 +44,8 @@ export const Navbar: React.FC<{
     { label: 'Contact', to: '/contact' },
   ];
 
+  const brandTitle = siteSettings?.fav_name || profile?.name || 'Anil Shrestha';
+
   return (
     <>
       <header className="sticky top-3 sm:top-4 z-40 px-3 sm:px-6 md:px-8 max-w-7xl mx-auto w-full">
@@ -53,14 +55,22 @@ export const Navbar: React.FC<{
             type="button"
             onClick={handleLogoClick}
             className="group flex items-center gap-2.5 sm:gap-3 text-left focus:outline-none select-none cursor-pointer min-w-0"
-            title="Anil Shrestha Portfolio (Triple-click for CMS)"
+            title={`${brandTitle} Portfolio (Triple-click for CMS)`}
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#111111] dark:bg-white text-white dark:text-[#111111] flex items-center justify-center font-bold text-xs tracking-tight shadow-xs transition-transform group-hover:scale-105 shrink-0">
-              AS
-            </div>
+            {siteSettings?.logo_url ? (
+              <img
+                src={siteSettings.logo_url}
+                alt={brandTitle}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-slate-200 dark:border-white/10 shadow-xs transition-transform group-hover:scale-105 shrink-0"
+              />
+            ) : (
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#111111] dark:bg-white text-white dark:text-[#111111] flex items-center justify-center font-bold text-xs tracking-tight shadow-xs transition-transform group-hover:scale-105 shrink-0">
+                {siteSettings?.logo_text || 'AS'}
+              </div>
+            )}
             <div className="min-w-0">
               <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight block truncate">
-                {profile.name || 'Anil Shrestha'}
+                {brandTitle}
               </span>
               <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 hidden sm:block tracking-wider uppercase truncate">
                 {profile.profession || 'Graphic Designer & UI/UX'}

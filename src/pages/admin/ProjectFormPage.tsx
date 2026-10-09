@@ -10,7 +10,10 @@ import {
   X,
   RefreshCw,
   Plus,
+  UploadCloud,
 } from 'lucide-react';
+import { InlineImageUpload } from '../../components/admin/InlineImageUpload';
+import { optimizeImageFile } from '../../lib/imageOptimizer';
 
 export const ProjectFormPage: React.FC<{ projectId?: string }> = ({ projectId }) => {
   const { projects, saveProject, media } = useData();
@@ -369,95 +372,109 @@ export const ProjectFormPage: React.FC<{ projectId?: string }> = ({ projectId })
               2. Cover Image & Gallery
             </h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Enter direct image paths or select from your uploaded media library.
+              Upload photos directly here, auto-optimized for faster page loading and crisp display.
             </p>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
-                Cover Image URL
-              </label>
-              <input
-                type="text"
-                name="cover_image_url"
-                value={formData.cover_image_url}
-                onChange={handleChange}
-                placeholder="/src/assets/images/... or https://..."
-                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none font-mono"
-              />
-              {media.length > 0 && (
-                <div className="pt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  <span>Insert from Media Library:</span>
-                  {media.slice(0, 4).map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => {
-                        setIsDirty(true);
-                        setFormData({ ...formData, cover_image_url: m.url });
-                      }}
-                      className="text-blue-600 dark:text-sky-400 underline hover:no-underline cursor-pointer"
-                    >
-                      {m.filename}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
-                Cover Image Alt Text
-              </label>
-              <input
-                type="text"
-                name="alt_text"
-                value={formData.alt_text || ''}
-                onChange={handleChange}
-                placeholder="Descriptive explanation for accessibility"
-                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none"
-              />
-            </div>
+          <div className="space-y-6">
+            <InlineImageUpload
+              label="Cover Image"
+              description="Primary project cover banner (automatically resized & compressed to WebP/JPEG for fast load)."
+              value={formData.cover_image_url}
+              onChange={(url) => {
+                setIsDirty(true);
+                setFormData({ ...formData, cover_image_url: url });
+              }}
+              altText={formData.alt_text}
+              onAltChange={(alt) => {
+                setIsDirty(true);
+                setFormData({ ...formData, alt_text: alt });
+              }}
+              maxDimension={1920}
+              placeholder="Upload photo directly or paste image URL"
+            />
 
             {/* Gallery URLs */}
             <div className="pt-4 border-t border-slate-100 dark:border-white/10 space-y-3">
-              <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
-                Additional Gallery Presentation Plates
-              </label>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
+                    Additional Gallery Presentation Plates ({formData.gallery_urls?.length || 0})
+                  </label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Add detail shots, mobile layouts, packaging dielines, and collateral.
+                  </p>
+                </div>
+
+                {/* Direct Upload Plate Button */}
+                <label className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold cursor-pointer flex items-center gap-1.5 shadow-xs transition-colors self-start sm:self-auto">
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  <span>Upload Plate Directly</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const opt = await optimizeImageFile(file, { maxDimension: 1920 });
+                        setIsDirty(true);
+                        setFormData((prev) => ({
+                          ...prev,
+                          gallery_urls: [...(prev.gallery_urls || []), opt.dataUrl],
+                        }));
+                      } catch (err) {
+                        console.error('Gallery plate upload failed:', err);
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
 
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={newGalleryUrl}
                   onChange={(e) => setNewGalleryUrl(e.target.value)}
-                  placeholder="Paste image URL..."
+                  placeholder="Or paste external image URL..."
                   className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none font-mono"
                 />
                 <button
                   type="button"
                   onClick={handleAddGalleryImage}
-                  className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-xs cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 rounded-xl shadow-xs cursor-pointer border border-slate-200 dark:border-white/10"
                 >
-                  Add Image
+                  Add Link
                 </button>
               </div>
 
               {formData.gallery_urls && formData.gallery_urls.length > 0 && (
-                <div className="space-y-2 pt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
                   {formData.gallery_urls.map((url, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-[#121212] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono"
+                      className="group relative aspect-video rounded-xl overflow-hidden bg-black/10 dark:bg-black/50 border border-slate-200 dark:border-white/10 shadow-xs"
                     >
-                      <span className="truncate max-w-lg text-slate-800 dark:text-slate-200">{url}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGalleryImage(idx)}
-                        className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                      <img
+                        src={url}
+                        alt={`Plate ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between p-2">
+                        <span className="text-[10px] font-mono text-white truncate max-w-[80px]">
+                          Plate #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGalleryImage(idx)}
+                          className="p-1 rounded bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
+                          title="Remove plate"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

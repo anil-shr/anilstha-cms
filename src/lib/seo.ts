@@ -93,11 +93,65 @@ function setMetaTag(name: string, content: string, isProperty: boolean) {
 }
 
 /**
+ * Dynamically applies custom favicon link and title brand from SiteSettings
+ */
+export const applySiteFavicon = (favIconUrl?: string, favName?: string) => {
+  if (typeof document === 'undefined') return;
+
+  if (favIconUrl && favIconUrl.trim()) {
+    let faviconLink = document.getElementById('app-favicon') as HTMLLinkElement | null;
+    if (!faviconLink) {
+      faviconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+    }
+    if (faviconLink) {
+      faviconLink.href = favIconUrl;
+      faviconLink.type = favIconUrl.endsWith('.svg') || favIconUrl.startsWith('data:image/svg')
+        ? 'image/svg+xml'
+        : 'image/x-icon';
+    } else {
+      const link = document.createElement('link');
+      link.id = 'app-favicon';
+      link.rel = 'icon';
+      link.href = favIconUrl;
+      document.head.appendChild(link);
+    }
+  }
+
+  // Update meta tag brand name if provided
+  if (favName && favName.trim()) {
+    let siteNameMeta = document.querySelector('meta[property="og:site_name"]');
+    if (siteNameMeta) {
+      siteNameMeta.setAttribute('content', favName);
+    }
+  }
+};
+
+/**
  * Route-based SEO helper to dynamically update meta tags based on the current pathname
  */
-export const updateSEOByRoute = (pathname: string, custom?: Partial<SEOConfig>) => {
+export const updateSEOByRoute = (
+  pathname: string,
+  custom?: Partial<SEOConfig>,
+  pageMetaMap?: Record<string, { title?: string; description?: string; og_image?: string }>
+) => {
   const cleanPath = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
   const canonicalUrl = `${SITE_DOMAIN}${cleanPath === '/' ? '' : cleanPath}`;
+
+  // Check stored site settings if not passed directly
+  let customFromSettings: { title?: string; description?: string; og_image?: string } | undefined;
+  if (pageMetaMap && pageMetaMap[cleanPath]) {
+    customFromSettings = pageMetaMap[cleanPath];
+  } else {
+    try {
+      const saved = localStorage.getItem('as_portfolio_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.page_meta && parsed.page_meta[cleanPath]) {
+          customFromSettings = parsed.page_meta[cleanPath];
+        }
+      }
+    } catch {}
+  }
 
   const defaultRouteMeta: Record<string, { title: string; description: string; ogType?: 'website' | 'article' | 'profile'; noindex?: boolean }> = {
     '/': {
@@ -174,12 +228,16 @@ export const updateSEOByRoute = (pathname: string, custom?: Partial<SEOConfig>) 
     ogType: 'website',
   };
 
+  const finalTitle = custom?.title || customFromSettings?.title || meta.title;
+  const finalDescription = custom?.description || customFromSettings?.description || meta.description;
+  const finalOgImage = custom?.ogImage || customFromSettings?.og_image || `${SITE_DOMAIN}/assets/anil_portrait_1791182391937.jpg`;
+
   updateSEO({
-    title: custom?.title || meta.title,
-    description: custom?.description || meta.description,
+    title: finalTitle,
+    description: finalDescription,
     canonicalUrl: custom?.canonicalUrl || canonicalUrl,
     ogType: custom?.ogType || meta.ogType,
-    ogImage: custom?.ogImage || `${SITE_DOMAIN}/assets/anil_portrait_1791182391937.jpg`,
+    ogImage: finalOgImage,
     noindex: custom?.noindex || meta.noindex,
     ...custom,
   });

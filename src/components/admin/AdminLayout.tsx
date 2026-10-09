@@ -32,18 +32,18 @@ export const AdminLayout: React.FC<{
   children: React.ReactNode;
 }> = ({ title, actionButton, children }) => {
   const { path, navigate } = useRouter();
-  const { user, isAdmin, logout, isCloudConnected, contactMessages } = useData();
+  const { user, isAdmin, logout, isCloudConnected, contactMessages, siteSettings } = useData();
   const { theme, toggleTheme } = useTheme();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   // Strictly enforce noindex for all admin pages
   useEffect(() => {
     updateSEO({
-      title: `${title} — CMS Dashboard | Anil Shrestha`,
+      title: `${title} — CMS Dashboard | ${siteSettings?.fav_name || 'Anil Shrestha'}`,
       description: 'Admin Content Management System',
       noindex: true,
     });
-  }, [title]);
+  }, [title, siteSettings?.fav_name]);
 
   // Auth guard: redirect to /admin/login if not authenticated
   useEffect(() => {
@@ -105,15 +105,23 @@ export const AdminLayout: React.FC<{
           {/* Top Brand */}
           <div className="p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white font-black text-xs shadow-md shadow-blue-600/30">
-                AS
-              </div>
-              <div>
+              {siteSettings?.logo_url ? (
+                <img
+                  src={siteSettings.logo_url}
+                  alt={siteSettings?.fav_name || 'Logo'}
+                  className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-white/10 shadow-md shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white font-black text-xs shadow-md shadow-blue-600/30 shrink-0">
+                  {siteSettings?.logo_text || 'AS'}
+                </div>
+              )}
+              <div className="min-w-0">
                 <span className="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold block">
                   CMS DASHBOARD
                 </span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight block">
-                  Anil Shrestha
+                <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight block truncate">
+                  {siteSettings?.fav_name || 'Anil Shrestha'}
                 </span>
               </div>
             </div>

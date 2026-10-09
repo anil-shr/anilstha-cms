@@ -121,14 +121,25 @@ export interface MediaItem {
   created_at: string;
 }
 
+export interface PageMetaItem {
+  title?: string;
+  description?: string;
+  og_image?: string;
+}
+
 export interface SiteSettings {
   id: string;
   site_name: string;
+  logo_url?: string;
+  logo_text?: string;
+  fav_icon_url?: string;
+  fav_name?: string;
   ga_id?: string;
   google_site_verification?: string;
   contact_email: string;
   allow_indexing: boolean;
   maintenance_mode: boolean;
+  page_meta?: Record<string, PageMetaItem>;
   updated_at?: string;
 }
 
@@ -154,5 +165,41 @@ export interface AuthUser {
   id: string;
   email: string;
   role: 'admin';
+}
+
+export interface ActivityLogEntry {
+  id: string;
+  action: 'create' | 'update' | 'delete' | 'publish' | 'backup' | 'sync';
+  entity: 'project' | 'service' | 'profile' | 'skill' | 'experience' | 'social' | 'media' | 'settings';
+  title: string;
+  details?: string;
+  timestamp: string;
+  user?: string;
+}
+
+export interface DatabaseSnapshot {
+  version: string;
+  exportedAt: string;
+  system: string;
+  author: string;
+  stats: {
+    projectsCount: number;
+    servicesCount: number;
+    skillsCount: number;
+    experienceCount: number;
+    socialLinksCount: number;
+    mediaCount: number;
+  };
+  data: {
+    profile: Profile;
+    projects: Project[];
+    services: Service[];
+    skills: Skill[];
+    experience: Experience[];
+    socialLinks: SocialLink[];
+    media: MediaItem[];
+    siteSettings: SiteSettings;
+    activityLogs?: ActivityLogEntry[];
+  };
 }
 

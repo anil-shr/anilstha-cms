@@ -11,6 +11,8 @@ import {
   ContactMessage,
   AuthUser,
   CookiePreferences,
+  ActivityLogEntry,
+  DatabaseSnapshot,
 } from '../types/database';
 import {
   initialProfile,
@@ -29,6 +31,7 @@ import {
   saveSupabaseCredentials,
   testSupabaseConnection,
 } from '../lib/supabase';
+import { applySiteFavicon } from '../lib/seo';
 
 interface DataContextType {
   profile: Profile;
@@ -67,6 +70,13 @@ interface DataContextType {
   deleteContactMessage: (id: string) => Promise<boolean>;
   cookieConsent: CookiePreferences;
   saveCookieConsent: (prefs: Partial<CookiePreferences>) => void;
+  // Activity Logging & Accountability
+  activityLogs: ActivityLogEntry[];
+  addActivityLog: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
+  clearActivityLogs: () => void;
+  // Manual Database Snapshot Backup & Restore
+  createDatabaseSnapshot: () => DatabaseSnapshot;
+  restoreDatabaseSnapshot: (snapshot: DatabaseSnapshot) => Promise<{ success: boolean; message: string }>;
   // Supabase Global Sync methods
   pushAllToSupabase: () => Promise<{ success: boolean; message: string }>;
   pullFromSupabase: () => Promise<{ success: boolean; message: string }>;
@@ -87,6 +97,7 @@ const STORAGE_KEYS = {
   MESSAGES: 'as_portfolio_messages',
   AUTH: 'as_portfolio_auth_user',
   COOKIES: 'as_portfolio_cookie_consent',
+  ACTIVITY_LOGS: 'as_portfolio_activity_logs',
 };
 
 async function apiPost(endpoint: string, body: any): Promise<any> {
@@ -166,6 +177,53 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
   });
 
+  const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVITY_LOGS);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    return [
+      {
+        id: 'log-seed-1',
+        action: 'update',
+        entity: 'profile',
+        title: 'Updated Headline & Bio Parameters',
+        details: 'Availability set to "Available for Hire & Projects" in Pokhara, Nepal',
+        timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+        user: 'Admin',
+      },
+      {
+        id: 'log-seed-2',
+        action: 'publish',
+        entity: 'project',
+        title: 'Published Project: Heritage Identity',
+        details: 'Featured showcase case study updated with full galleries',
+        timestamp: new Date(Date.now() - 1000 * 60 * 130).toISOString(),
+        user: 'Admin',
+      },
+      {
+        id: 'log-seed-3',
+        action: 'update',
+        entity: 'service',
+        title: 'Updated Service: Brand Identity & Systems',
+        details: 'Refined deliverables list and design sprint duration',
+        timestamp: new Date(Date.now() - 1000 * 60 * 380).toISOString(),
+        user: 'Admin',
+      },
+      {
+        id: 'log-seed-4',
+        action: 'sync',
+        entity: 'settings',
+        title: 'Synced Cloud State with Remote Supabase',
+        details: 'Verified database schemas, storage bucket, and public endpoints',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 22).toISOString(),
+        user: 'Admin',
+      },
+    ];
+  });
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
 
@@ -200,6 +258,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(siteSettings));
+    applySiteFavicon(siteSettings.fav_icon_url, siteSettings.fav_name);
   }, [siteSettings]);
 
   useEffect(() => {
@@ -217,6 +276,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.COOKIES, JSON.stringify(cookieConsent));
   }, [cookieConsent]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ACTIVITY_LOGS, JSON.stringify(activityLogs));
+  }, [activityLogs]);
 
   // Load from Supabase (via backend /api/data and direct Supabase fallback) on mount and subscribe to Realtime
   useEffect(() => {
@@ -368,6 +431,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (e.key === STORAGE_KEYS.MEDIA) setMedia(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.SETTINGS) setSiteSettings(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.AUTH) setUser(JSON.parse(e.newValue));
+        if (e.key === STORAGE_KEYS.ACTIVITY_LOGS) setActivityLogs(JSON.parse(e.newValue));
       } catch (err) {
         console.error('Cross-tab sync error:', err);
       }
@@ -447,9 +511,100 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const addActivityLog = (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => {
+    const newEntry: ActivityLogEntry = {
+      ...entry,
+      id: 'log-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+      timestamp: new Date().toISOString(),
+      user: entry.user || (user?.email ? 'Admin' : 'Admin'),
+    };
+    setActivityLogs((prev) => [newEntry, ...prev.slice(0, 99)]);
+  };
+
+  const clearActivityLogs = () => {
+    setActivityLogs([]);
+    localStorage.removeItem(STORAGE_KEYS.ACTIVITY_LOGS);
+  };
+
+  const createDatabaseSnapshot = (): DatabaseSnapshot => {
+    const snapshot: DatabaseSnapshot = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      system: 'Anil Shrestha Portfolio CMS Engine',
+      author: user?.email || profile.email || 'Admin',
+      stats: {
+        projectsCount: projects.length,
+        servicesCount: services.length,
+        skillsCount: skills.length,
+        experienceCount: experience.length,
+        socialLinksCount: socialLinks.length,
+        mediaCount: media.length,
+      },
+      data: {
+        profile,
+        projects,
+        services,
+        skills,
+        experience,
+        socialLinks,
+        media,
+        siteSettings,
+        activityLogs,
+      },
+    };
+
+    addActivityLog({
+      action: 'backup',
+      entity: 'settings',
+      title: 'Created Manual Database Snapshot Backup',
+      details: `Generated snapshot with ${projects.length} projects, ${services.length} services, and current state`,
+    });
+
+    return snapshot;
+  };
+
+  const restoreDatabaseSnapshot = async (
+    snapshot: DatabaseSnapshot
+  ): Promise<{ success: boolean; message: string }> => {
+    if (!snapshot || !snapshot.data) {
+      return { success: false, message: 'Invalid snapshot format: data payload missing.' };
+    }
+    try {
+      const { data } = snapshot;
+      if (data.profile) setProfile(data.profile);
+      if (Array.isArray(data.projects)) setProjects(data.projects);
+      if (Array.isArray(data.services)) setServices(data.services);
+      if (Array.isArray(data.skills)) setSkills(data.skills);
+      if (Array.isArray(data.experience)) setExperience(data.experience);
+      if (Array.isArray(data.socialLinks)) setSocialLinks(data.socialLinks);
+      if (Array.isArray(data.media)) setMedia(data.media);
+      if (data.siteSettings) setSiteSettings(data.siteSettings);
+      if (Array.isArray(data.activityLogs)) {
+        setActivityLogs(data.activityLogs);
+      }
+
+      addActivityLog({
+        action: 'backup',
+        entity: 'settings',
+        title: 'Restored Portfolio State from Snapshot Backup',
+        details: `Restored snapshot exported on ${snapshot.exportedAt || 'earlier timestamp'}`,
+      });
+
+      return { success: true, message: 'Portfolio state successfully restored from snapshot!' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to restore snapshot.' };
+    }
+  };
+
   const updateProfile = async (newProfile: Profile): Promise<boolean> => {
     const updated = { ...newProfile, updated_at: new Date().toISOString() };
     setProfile(updated);
+    addActivityLog({
+      action: 'update',
+      entity: 'profile',
+      title: 'Updated Profile Information',
+      details: `${newProfile.name} • Headline: ${newProfile.headline.substring(0, 45)}...`,
+    });
     try {
       await apiPost('/api/admin/update-profile', updated);
       setIsCloudConnected(true);
@@ -481,6 +636,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
     }
 
+    addActivityLog({
+      action: isNew ? 'create' : 'update',
+      entity: 'project',
+      title: `${isNew ? 'Created' : 'Updated'} Project: ${project.title}`,
+      details: `Category: ${project.category} (${project.year}) • Status: ${project.published ? 'Published' : 'Draft'}`,
+    });
+
     try {
       const res = await apiPost('/api/admin/save-project', updatedProj);
       if (res?.project) {
@@ -505,7 +667,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteProject = async (id: string): Promise<boolean> => {
+    const target = projects.find((p) => p.id === id);
     setProjects((prev) => prev.filter((p) => p.id !== id));
+    addActivityLog({
+      action: 'delete',
+      entity: 'project',
+      title: `Deleted Project: ${target?.title || id}`,
+    });
     try {
       await apiPost('/api/admin/delete-project', { id });
     } catch (err) {
@@ -526,6 +694,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newPublished = !target.published;
     const updated = { ...target, published: newPublished, updated_at: new Date().toISOString() };
     setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    addActivityLog({
+      action: 'publish',
+      entity: 'project',
+      title: `${newPublished ? 'Published' : 'Unpublished'} Project: ${target.title}`,
+      details: `Visibility changed to ${newPublished ? 'Published (Live)' : 'Draft'}`,
+    });
     try {
       await apiPost('/api/admin/toggle-project-publish', { id, published: newPublished });
     } catch (err) {
@@ -545,6 +719,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newFeatured = !target.featured;
     const updated = { ...target, featured: newFeatured, updated_at: new Date().toISOString() };
     setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    addActivityLog({
+      action: 'update',
+      entity: 'project',
+      title: `${newFeatured ? 'Marked Featured' : 'Removed from Featured'}: ${target.title}`,
+    });
     try {
       await apiPost('/api/admin/toggle-project-feature', { id, featured: newFeatured });
     } catch (err) {
@@ -566,6 +745,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setServices((prev) => [...prev, updated]);
     }
+    addActivityLog({
+      action: exists ? 'update' : 'create',
+      entity: 'service',
+      title: `${exists ? 'Updated' : 'Created'} Service: ${service.title}`,
+      details: `${service.description.substring(0, 45)}...`,
+    });
     try {
       const res = await apiPost('/api/admin/save-service', updated);
       if (res?.service) {
@@ -586,7 +771,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteService = async (id: string): Promise<boolean> => {
+    const target = services.find((s) => s.id === id);
     setServices((prev) => prev.filter((s) => s.id !== id));
+    addActivityLog({
+      action: 'delete',
+      entity: 'service',
+      title: `Deleted Service: ${target?.title || id}`,
+    });
     try {
       await apiPost('/api/admin/delete-service', { id });
     } catch (err) {
@@ -788,6 +979,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSiteSettings = async (settings: SiteSettings): Promise<boolean> => {
     const updated = { ...settings, updated_at: new Date().toISOString() };
     setSiteSettings(updated);
+    addActivityLog({
+      action: 'update',
+      entity: 'settings',
+      title: 'Updated Site Settings & SEO Parameters',
+      details: `Site Name: ${updated.site_name} • Indexing: ${updated.allow_indexing ? 'Permitted' : 'Disallowed'}`,
+    });
     try {
       await apiPost('/api/admin/save-settings', updated);
       setIsCloudConnected(true);
@@ -1053,6 +1250,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteContactMessage,
         cookieConsent,
         saveCookieConsent,
+        activityLogs,
+        addActivityLog,
+        clearActivityLogs,
+        createDatabaseSnapshot,
+        restoreDatabaseSnapshot,
         pushAllToSupabase,
         pullFromSupabase,
         configureSupabase,

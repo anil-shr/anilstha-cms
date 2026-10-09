@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { useData } from '../../context/DataContext';
 import { Check, AlertCircle, RefreshCw, FileText } from 'lucide-react';
+import { InlineImageUpload } from '../../components/admin/InlineImageUpload';
 
 export const ProfileEditorPage: React.FC = () => {
   const { profile, updateProfile, media } = useData();
@@ -290,38 +291,18 @@ export const ProfileEditorPage: React.FC = () => {
           </div>
 
           <div className="space-y-5">
-            <div className="space-y-2">
-              <label htmlFor="prof-img-url" className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">
-                Portrait Photo URL
-              </label>
-              <input
-                id="prof-img-url"
-                type="text"
-                name="profile_image_url"
-                value={formData.profile_image_url}
-                onChange={handleChange}
-                className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none font-mono"
-              />
-
-              {media.length > 0 && (
-                <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  <span>Quick select:</span>
-                  {media.slice(0, 3).map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => {
-                        setIsDirty(true);
-                        setFormData({ ...formData, profile_image_url: m.url });
-                      }}
-                      className="underline text-blue-600 dark:text-sky-400 hover:text-blue-700 cursor-pointer"
-                    >
-                      {m.filename}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <InlineImageUpload
+              label="Portrait Photo"
+              description="High-resolution personal portrait displayed across About, Hero, and Navigation. Automatically resized & compressed for fast loading."
+              value={formData.profile_image_url}
+              onChange={(url) => {
+                setIsDirty(true);
+                setFormData({ ...formData, profile_image_url: url });
+              }}
+              maxDimension={1200}
+              previewHeightClass="h-40"
+              placeholder="Upload portrait photo directly or paste image URL"
+            />
 
             <div className="space-y-2">
               <label htmlFor="prof-resume-url" className="text-xs uppercase tracking-wider font-semibold text-slate-700 dark:text-slate-300 block">

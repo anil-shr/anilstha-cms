@@ -146,7 +146,7 @@ export default function App() {
     if (normalizedPath.startsWith('/work/')) return <ProjectDetailPage />;
     if (normalizedPath === '/services') return <ServicesPage />;
     if (normalizedPath === '/skills') return <SkillsPage />;
-    if (normalizedPath === '/arcade') return <ArcadePage />;
+    if (normalizedPath === '/arcade' || normalizedPath === '/converter' || normalizedPath === '/date-converter') return <ArcadePage />;
     if (normalizedPath === '/contact') return <ContactPage />;
     if (normalizedPath === '/privacy') return <PrivacyPolicyPage />;
     if (normalizedPath === '/cookies') {

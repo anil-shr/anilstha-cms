@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { updateSEO } from '../../lib/seo';
+import { NepaliDateConverter } from '../../components/public/NepaliDateConverter';
 import {
   Gamepad2,
   Palette,
@@ -38,7 +39,22 @@ export const ArcadePage: React.FC = () => {
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'PALETTE' | 'DINO' | 'SNAKE' | 'DATE'>('PALETTE');
+  const [activeTab, setActiveTab] = useState<'PALETTE' | 'DINO' | 'SNAKE' | 'DATE'>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      if (
+        hash.includes('date') ||
+        hash.includes('converter') ||
+        search.includes('date') ||
+        search.includes('converter') ||
+        window.location.pathname.includes('converter')
+      ) {
+        return 'DATE';
+      }
+    }
+    return 'PALETTE';
+  });
 
   const tabs = [
     { id: 'PALETTE' as const, label: 'Color Palette Studio', icon: Palette },
@@ -1250,74 +1266,6 @@ const SnakeGame: React.FC = () => {
 // 4. NEPAL BIKRAM SAMBAT (B.S.) DATE CONVERTER TOOL
 // =========================================================================
 const DateConverterTool: React.FC = () => {
-  const [adDate, setAdDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [nepaliYear, setNepaliYear] = useState('2083');
-  const [nepaliMonth, setNepaliMonth] = useState('Ashwin');
-
-  const nepaliMonths = [
-    'Baishakh',
-    'Jestha',
-    'Ashadh',
-    'Shrawan',
-    'Bhadra',
-    'Ashwin',
-    'Kartik',
-    'Mangsir',
-    'Poush',
-    'Magh',
-    'Falgun',
-    'Chaitra',
-  ];
-
-  const convertDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return;
-    const year = d.getFullYear() + 57;
-    const monthIdx = (d.getMonth() + 8) % 12;
-    setNepaliYear(year.toString());
-    setNepaliMonth(nepaliMonths[monthIdx]);
-  };
-
-  return (
-    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 text-left transition-colors">
-      <div>
-        <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400 block mb-1">
-          Nepal Regional Utility
-        </span>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Bikram Sambat (BS) Date Converter</h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Instant calculation between Gregorian (AD) and Nepal National Calendar (B.S.).
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-        <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-            Gregorian (A.D.) Date
-          </label>
-          <input
-            type="date"
-            value={adDate}
-            onChange={(e) => {
-              setAdDate(e.target.value);
-              convertDate(e.target.value);
-            }}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#121212] text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:border-blue-600"
-          />
-        </div>
-
-        <div className="p-5 rounded-2xl bg-blue-50/70 dark:bg-[#121212] border border-blue-100 dark:border-white/10 flex flex-col justify-center space-y-1.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400">
-            Nepali Bikram Sambat (B.S.)
-          </span>
-          <p className="text-2xl font-black text-slate-900 dark:text-white font-mono">
-            {nepaliMonth} {new Date(adDate).getDate()}, {nepaliYear} B.S.
-          </p>
-          <span className="text-[10px] text-blue-700 dark:text-slate-400 font-medium">
-            Official Nepal Standard Calendar
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+  return <NepaliDateConverter />;
 };
+

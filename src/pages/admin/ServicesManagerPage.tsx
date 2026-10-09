@@ -3,6 +3,7 @@ import { AdminLayout } from '../../components/admin/AdminLayout';
 import { useData } from '../../context/DataContext';
 import { Service } from '../../types/database';
 import { Plus, Edit, Trash2, Check, X, Layers, Palette, Layout, Sparkles, Upload, Image as ImageIcon } from 'lucide-react';
+import { optimizeImageFile } from '../../lib/imageOptimizer';
 
 export const ServicesManagerPage: React.FC = () => {
   const { services, saveService, deleteService } = useData();
@@ -32,16 +33,24 @@ export const ServicesManagerPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleIconUpload = (file: File) => {
+  const handleIconUpload = async (file: File) => {
     if (!editingService) return;
-    const reader = new FileReader();
-    reader.onload = () => {
+    try {
+      const opt = await optimizeImageFile(file, { maxDimension: 512 });
       setEditingService({
         ...editingService,
-        custom_icon_url: reader.result as string,
+        custom_icon_url: opt.dataUrl,
       });
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setEditingService({
+          ...editingService,
+          custom_icon_url: reader.result as string,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleAddDeliverable = () => {

@@ -3,6 +3,7 @@ import { AdminLayout } from '../../components/admin/AdminLayout';
 import { useData } from '../../context/DataContext';
 import { Link } from '../../lib/router';
 import { SpotlightCard } from '../../components/public/SpotlightCard';
+import { ActivityLog } from '../../components/admin/ActivityLog';
 import {
   Briefcase,
   Layers,
@@ -198,6 +199,9 @@ export const DashboardPage: React.FC = () => {
             </table>
           </div>
         </SpotlightCard>
+
+        {/* Real-Time Activity & Accountability Audit Log */}
+        <ActivityLog />
       </div>
     </AdminLayout>
   );
