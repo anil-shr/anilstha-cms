@@ -80,6 +80,8 @@ interface DataContextType {
   // Supabase Global Sync methods
   pushAllToSupabase: () => Promise<{ success: boolean; message: string }>;
   pullFromSupabase: () => Promise<{ success: boolean; message: string }>;
+  refreshInquiries: () => Promise<ContactMessage[]>;
+  syncAllWithSupabase: () => Promise<{ success: boolean; message: string }>;
   configureSupabase: (url: string, key: string) => Promise<{ success: boolean; message: string }>;
 }
 
@@ -310,6 +312,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setMedia(apiData.media);
           }
           if (apiData.siteSettings) setSiteSettings(apiData.siteSettings);
+          if (Array.isArray(apiData.contactMessages)) {
+            setContactMessages(apiData.contactMessages);
+          }
           setIsCloudConnected(true);
           return;
         }
@@ -331,6 +336,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             { data: expData },
             { data: socData },
             { data: settsData },
+            { data: msgData },
           ] = await Promise.all([
             client.from('profiles').select('*').limit(1).maybeSingle(),
             client.from('projects').select('*').order('sort_order', { ascending: true }),
@@ -339,6 +345,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             client.from('experience').select('*').order('sort_order', { ascending: true }),
             client.from('social_links').select('*').order('sort_order', { ascending: true }),
             client.from('site_settings').select('*').limit(1).maybeSingle(),
+            client.from('contact_messages').select('*').order('created_at', { ascending: false }),
           ]);
 
           if (profData) setProfile(profData);
@@ -348,6 +355,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (expData && expData.length > 0) setExperience(expData);
           if (socData && socData.length > 0) setSocialLinks(socData);
           if (settsData) setSiteSettings(settsData);
+          if (msgData && Array.isArray(msgData)) setContactMessages(msgData);
           setIsCloudConnected(true);
         } catch (directErr) {
           console.warn('[DataContext] Direct Supabase read notice:', directErr);
@@ -406,6 +414,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
           )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'contact_messages' },
+            (payload) => {
+              if (payload.eventType === 'INSERT') {
+                setContactMessages((prev) => {
+                  const exists = prev.some((m) => m.id === payload.new.id);
+                  return exists ? prev : [payload.new as ContactMessage, ...prev];
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                setContactMessages((prev) =>
+                  prev.map((m) => (m.id === payload.new.id ? (payload.new as ContactMessage) : m))
+                );
+              } else if (payload.eventType === 'DELETE') {
+                setContactMessages((prev) => prev.filter((m) => m.id !== payload.old.id));
+              }
+            }
+          )
           .subscribe();
       } catch (realtimeErr) {
         console.warn('Realtime channel subscription error:', realtimeErr);
@@ -430,6 +456,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (e.key === STORAGE_KEYS.SOCIAL) setSocialLinks(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.MEDIA) setMedia(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.SETTINGS) setSiteSettings(JSON.parse(e.newValue));
+        if (e.key === STORAGE_KEYS.MESSAGES) setContactMessages(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.AUTH) setUser(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.ACTIVITY_LOGS) setActivityLogs(JSON.parse(e.newValue));
       } catch (err) {
@@ -1017,27 +1044,48 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const submitContactMessage = async (
     msg: Omit<ContactMessage, 'id' | 'status' | 'created_at'>
   ): Promise<{ success: boolean; error?: string }> => {
-    const newMessage: ContactMessage = {
+    const tempId = 'msg-' + Date.now();
+    const optimisticMessage: ContactMessage = {
       ...msg,
-      id: 'msg-' + Date.now(),
+      id: tempId,
       status: 'unread',
       created_at: new Date().toISOString(),
     };
-    setContactMessages((prev) => [newMessage, ...prev]);
+    setContactMessages((prev) => [optimisticMessage, ...prev]);
+
     try {
-      await apiPost('/api/contact', msg);
+      const res = await apiPost('/api/contact', msg);
+      if (res && res.message) {
+        setContactMessages((prev) => [
+          res.message,
+          ...prev.filter((m) => m.id !== tempId),
+        ]);
+      }
       return { success: true };
     } catch (err: any) {
+      console.warn('[DataContext] /api/contact error, trying direct client:', err);
       const client = getSupabaseClient();
       if (client) {
         try {
-          await client.from('contact_messages').insert({
-            name: msg.name,
-            email: msg.email,
-            subject: msg.subject,
-            message: msg.message,
-            status: 'unread',
-          });
+          const { data, error } = await client
+            .from('contact_messages')
+            .insert({
+              name: msg.name,
+              email: msg.email,
+              subject: msg.subject,
+              message: msg.message,
+              status: 'unread',
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          if (data) {
+            setContactMessages((prev) => [
+              data,
+              ...prev.filter((m) => m.id !== tempId),
+            ]);
+          }
           return { success: true };
         } catch (subErr: any) {
           return { success: false, error: subErr.message };
@@ -1054,6 +1102,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setContactMessages((prev) =>
       prev.map((m) => (m.id === id ? { ...m, status } : m))
     );
+    try {
+      await fetch('/api/admin/inquiry-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+    } catch (err) {
+      console.warn('Backend update inquiry error:', err);
+    }
     const client = getSupabaseClient();
     if (client) {
       try {
@@ -1067,6 +1124,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteContactMessage = async (id: string): Promise<boolean> => {
     setContactMessages((prev) => prev.filter((m) => m.id !== id));
+    try {
+      await fetch('/api/admin/delete-inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+    } catch (err) {
+      console.warn('Backend delete inquiry error:', err);
+    }
     const client = getSupabaseClient();
     if (client) {
       try {
@@ -1166,6 +1232,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSocialLinks(apiData.socialLinks);
         }
         if (apiData.siteSettings) setSiteSettings(apiData.siteSettings);
+        if (Array.isArray(apiData.contactMessages)) {
+          setContactMessages(apiData.contactMessages);
+        }
         setIsCloudConnected(true);
         return { success: true, message: 'Successfully pulled latest live data from Supabase!' };
       }
@@ -1185,6 +1254,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           { data: expData },
           { data: socData },
           { data: settsData },
+          { data: msgData },
         ] = await Promise.all([
           client.from('profiles').select('*').limit(1).maybeSingle(),
           client.from('projects').select('*').order('sort_order', { ascending: true }),
@@ -1193,6 +1263,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           client.from('experience').select('*').order('sort_order', { ascending: true }),
           client.from('social_links').select('*').order('sort_order', { ascending: true }),
           client.from('site_settings').select('*').limit(1).maybeSingle(),
+          client.from('contact_messages').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (profData) setProfile(profData);
@@ -1202,11 +1273,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (expData && expData.length > 0) setExperience(expData);
         if (socData && socData.length > 0) setSocialLinks(socData);
         if (settsData) setSiteSettings(settsData);
+        if (msgData && Array.isArray(msgData)) setContactMessages(msgData);
         setIsCloudConnected(true);
         return { success: true, message: 'Successfully pulled latest live data from Supabase!' };
       } catch (fallbackErr: any) {
         return { success: false, message: `Failed to load from Supabase: ${fallbackErr.message}` };
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Dedicated inquiry sync function: re-queries /api/contact or client fallback
+  const refreshInquiries = async (): Promise<ContactMessage[]> => {
+    try {
+      const res = await fetch('/api/contact');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.messages)) {
+          setContactMessages(data.messages);
+          try {
+            localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(data.messages));
+          } catch {}
+          return data.messages;
+        }
+      }
+    } catch (err) {
+      console.warn('Backend /api/contact fetch error, trying client fallback:', err);
+    }
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        const { data } = await client
+          .from('contact_messages')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (data && Array.isArray(data)) {
+          setContactMessages(data);
+          try {
+            localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(data));
+          } catch {}
+          return data;
+        }
+      } catch {}
+    }
+    return contactMessages;
+  };
+
+  // Two-way synchronization of all content, settings, and inquiries
+  const syncAllWithSupabase = async (): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true);
+    try {
+      await pushAllToSupabase();
+      await pullFromSupabase();
+      await refreshInquiries();
+      setIsCloudConnected(true);
+      return {
+        success: true,
+        message: 'Successfully relinked and synchronized all portfolio content and inquiries with Supabase!',
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: `Sync failed: ${err.message || 'Unknown error'}`,
+      };
     } finally {
       setIsLoading(false);
     }
@@ -1219,7 +1349,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (testResult.success) {
       setIsCloudConnected(true);
       await pullFromSupabase();
-      return { success: true, message: 'Supabase connected successfully!' };
+      await refreshInquiries();
+      return { success: true, message: 'Supabase connected and fully synchronized!' };
     } else {
       setIsCloudConnected(false);
       return { success: false, message: testResult.message };
@@ -1272,6 +1403,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         restoreDatabaseSnapshot,
         pushAllToSupabase,
         pullFromSupabase,
+        refreshInquiries,
+        syncAllWithSupabase,
         configureSupabase,
       }}
     >

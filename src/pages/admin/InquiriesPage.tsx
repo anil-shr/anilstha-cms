@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { useData } from '../../context/DataContext';
 import { ContactMessage } from '../../types/database';
@@ -17,15 +17,25 @@ import {
   X,
   Send,
   User,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
+import { SocialIcon } from '../../components/public/SocialIcon';
+import { resolveWhatsAppUrl } from '../../lib/whatsapp';
 
 export const InquiriesPage: React.FC = () => {
-  const { contactMessages, updateMessageStatus, deleteContactMessage } = useData();
+  const { contactMessages, updateMessageStatus, deleteContactMessage, refreshInquiries, siteSettings } = useData();
 
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read' | 'replied' | 'archived'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Automatically refresh inquiries from Supabase on mount
+  useEffect(() => {
+    refreshInquiries();
+  }, []);
 
   const showNotice = (text: string) => {
     setNotice(text);
@@ -90,7 +100,26 @@ export const InquiriesPage: React.FC = () => {
   };
 
   return (
-    <AdminLayout title="Client Inquiries">
+    <AdminLayout
+      title="Client Inquiries"
+      actionButton={
+        <button
+          type="button"
+          onClick={async () => {
+            setIsSyncing(true);
+            await refreshInquiries();
+            setIsSyncing(false);
+            showNotice('All inquiries synchronized with Supabase live database.');
+          }}
+          disabled={isSyncing}
+          className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-md shadow-blue-600/25 disabled:opacity-50"
+          title="Pull latest inquiries from Supabase live database"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span>{isSyncing ? 'Syncing...' : 'Sync Inquiries'}</span>
+        </button>
+      }
+    >
       <div className="space-y-6 max-w-6xl text-left">
         {/* Flash notice */}
         {notice && (
@@ -368,6 +397,21 @@ export const InquiriesPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleStatusChange(selectedMessage.id, 'replied');
+                    const text = `Hello ${selectedMessage.name}, thank you for reaching out regarding "${selectedMessage.subject}". How can we help you further?`;
+                    const waUrl = resolveWhatsAppUrl(siteSettings?.whatsapp_target || siteSettings?.whatsapp_number || 'https://wa.me/anilstha.pkr', text);
+                    window.open(waUrl, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Open WhatsApp chat with pre-filled reply"
+                >
+                  <SocialIcon platform="whatsapp" className="w-3.5 h-3.5 text-white fill-white shrink-0" />
+                  <span>Reply on WhatsApp</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => handleReply(selectedMessage)}

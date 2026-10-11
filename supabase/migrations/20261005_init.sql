@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   short_bio TEXT NOT NULL DEFAULT 'Crafting meaningful visual identities, intuitive web & mobile interfaces, marketing collateral, and precision print solutions.',
   long_bio TEXT NOT NULL DEFAULT 'Creative designer with specialized experience in visual communication, branding systems, and intuitive UI/UX design. Based in Pokhara, Nepal.',
   location TEXT NOT NULL DEFAULT 'Pokhara, Nepal',
-  email TEXT NOT NULL DEFAULT 'hello@anilshrestha.design',
+  email TEXT NOT NULL DEFAULT 'inquiry@anilshrestha11.com.np',
   availability TEXT NOT NULL DEFAULT 'Available for Hire & Projects',
   profile_image_url TEXT,
   hero_heading TEXT NOT NULL DEFAULT 'Creative designer turning ideas into visual experiences.',
@@ -139,17 +139,18 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
   site_name TEXT NOT NULL DEFAULT 'Anil Shrestha Portfolio & CMS',
   ga_id TEXT,
   google_site_verification TEXT,
-  contact_email TEXT DEFAULT 'hello@anilshrestha.design',
+  contact_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np',
   allow_indexing BOOLEAN NOT NULL DEFAULT true,
   maintenance_mode BOOLEAN NOT NULL DEFAULT false,
   enable_whatsapp_inquiry BOOLEAN NOT NULL DEFAULT true,
-  whatsapp_target TEXT DEFAULT '+977 9841234567',
+  whatsapp_target TEXT DEFAULT 'https://wa.me/anilstha.pkr',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Idempotent column check for existing databases
 ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS enable_whatsapp_inquiry BOOLEAN DEFAULT true;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_target TEXT DEFAULT '+977 9841234567';
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_target TEXT DEFAULT 'https://wa.me/anilstha.pkr';
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS contact_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np';
 
 -- 10. Contact Messages Table
 CREATE TABLE IF NOT EXISTS public.contact_messages (

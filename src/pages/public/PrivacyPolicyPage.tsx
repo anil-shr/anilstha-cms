@@ -49,7 +49,7 @@ export const PrivacyPolicyPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-              <span><strong>Email:</strong> {profile.email || 'hello@anilshrestha.design'}</span>
+              <span><strong>Email:</strong> {profile.email || 'inquiry@anilshrestha11.com.np'}</span>
             </div>
           </div>
         </div>
@@ -124,8 +124,8 @@ export const PrivacyPolicyPage: React.FC = () => {
             </ul>
             <p className="text-xs pt-1">
               To exercise any privacy right, email us directly at{' '}
-              <a href={`mailto:${profile.email || 'hello@anilshrestha.design'}`} className="text-blue-600 dark:text-sky-400 underline">
-                {profile.email || 'hello@anilshrestha.design'}
+              <a href={`mailto:${profile.email || 'inquiry@anilshrestha11.com.np'}`} className="text-blue-600 dark:text-sky-400 underline">
+                {profile.email || 'inquiry@anilshrestha11.com.np'}
               </a>
               . Requests are verified and honored within 30 days.
             </p>

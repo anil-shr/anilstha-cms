@@ -35,7 +35,7 @@ export const ContactPage: React.FC = () => {
   });
 
   const enableWhatsApp = siteSettings?.enable_whatsapp_inquiry !== false;
-  const whatsappTarget = siteSettings?.whatsapp_target || siteSettings?.whatsapp_number || '+977 9841234567';
+  const whatsappTarget = siteSettings?.whatsapp_target || siteSettings?.whatsapp_number || 'https://wa.me/anilstha.pkr';
 
   const [lastSubmitted, setLastSubmitted] = useState<typeof formData | null>(null);
   const [lastSentToWhatsApp, setLastSentToWhatsApp] = useState(false);
@@ -406,8 +406,8 @@ export const ContactPage: React.FC = () => {
                 <Mail className="w-4 h-4 text-blue-600 dark:text-sky-400 shrink-0" />
                 <div>
                   <span className="text-[11px] text-slate-500 block">Direct Email</span>
-                  <a href={`mailto:${profile.email || 'hello@anilshrestha.design'}`} className="text-slate-900 dark:text-white font-medium hover:underline">
-                    {profile.email || 'hello@anilshrestha.design'}
+                  <a href={`mailto:${profile.email || siteSettings?.contact_email || 'inquiry@anilshrestha11.com.np'}`} className="text-slate-900 dark:text-white font-medium hover:underline">
+                    {profile.email || siteSettings?.contact_email || 'inquiry@anilshrestha11.com.np'}
                   </a>
                 </div>
               </div>

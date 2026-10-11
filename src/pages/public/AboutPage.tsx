@@ -110,10 +110,10 @@ export const AboutPage: React.FC = () => {
                     Direct Email
                   </span>
                   <a
-                    href={`mailto:${profile.email || 'hello@anilshrestha.design'}`}
+                    href={`mailto:${profile.email || 'inquiry@anilshrestha11.com.np'}`}
                     className="font-semibold text-blue-600 dark:text-sky-400 hover:underline text-xs truncate block"
                   >
-                    {profile.email || 'hello@anilshrestha.design'}
+                    {profile.email || 'inquiry@anilshrestha11.com.np'}
                   </a>
                 </div>
               </div>

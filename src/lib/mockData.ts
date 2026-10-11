@@ -18,7 +18,7 @@ export const initialProfile: Profile = {
   short_bio: 'Crafting meaningful visual identities, intuitive web & mobile interfaces, marketing collateral, and precision print solutions for clients in Pokhara, Nepal and worldwide.',
   long_bio: 'Creative designer with 3–5 years of specialized experience in visual communication, branding systems, and intuitive UI/UX design. Based in Pokhara, Nepal, I bridge human empathy with aesthetic precision across digital products, mobile interfaces, and high-impact print collateral.',
   location: 'Pokhara, Nepal',
-  email: 'hello@anilshrestha.design',
+  email: 'inquiry@anilshrestha11.com.np',
   availability: 'Available for Hire & Projects',
   profile_image_url: '/src/assets/images/anil_portrait_1791182391937.jpg',
   hero_heading: 'Creative designer turning ideas into visual experiences.',
@@ -317,14 +317,14 @@ export const initialSiteSettings: SiteSettings = {
   site_name: 'Anil Shrestha — Graphic Designer & UI/UX Specialist',
   ga_id: '',
   google_site_verification: '',
-  contact_email: 'hello@anilshrestha.design',
+  contact_email: 'inquiry@anilshrestha11.com.np',
   allow_indexing: true,
   maintenance_mode: false,
   enable_gmail_inquiry: true,
-  gmail_inquiry_email: 'hello@anilshrestha.design',
+  gmail_inquiry_email: 'inquiry@anilshrestha11.com.np',
   enable_whatsapp_inquiry: true,
-  whatsapp_number: '+977 9841234567',
-  whatsapp_target: '+977 9841234567',
+  whatsapp_number: 'https://wa.me/anilstha.pkr',
+  whatsapp_target: 'https://wa.me/anilstha.pkr',
 };
 
 export const initialContactMessages: ContactMessage[] = [

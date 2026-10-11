@@ -49,6 +49,7 @@ export const SettingsPage: React.FC = () => {
     isCloudConnected,
     pushAllToSupabase,
     pullFromSupabase,
+    syncAllWithSupabase,
     configureSupabase,
     isLoading,
     projects,
@@ -244,6 +245,32 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleRelinkAndSyncAll = async () => {
+    setSyncingCloud(true);
+    setConnectionNotice(null);
+    try {
+      const res = await syncAllWithSupabase();
+      if (res.success) {
+        setConnectionNotice({
+          type: 'success',
+          message: res.message,
+        });
+      } else {
+        setConnectionNotice({
+          type: 'error',
+          message: res.message,
+        });
+      }
+    } catch (err: any) {
+      setConnectionNotice({
+        type: 'error',
+        message: err.message || 'Relink and synchronization failed.',
+      });
+    } finally {
+      setSyncingCloud(false);
+    }
+  };
+
   const handleCopySqlSetup = () => {
     const sqlContent = `-- Run this in your Supabase SQL Editor:
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -257,7 +284,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   short_bio TEXT,
   long_bio TEXT,
   location TEXT DEFAULT 'Pokhara, Nepal',
-  email TEXT DEFAULT 'hello@anilshrestha.design',
+  email TEXT DEFAULT 'inquiry@anilshrestha11.com.np',
   availability TEXT DEFAULT 'Available for Hire & Projects',
   profile_image_url TEXT,
   hero_heading TEXT,
@@ -368,16 +395,17 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
   site_name TEXT NOT NULL DEFAULT 'Anil Shrestha Portfolio & CMS',
   ga_id TEXT,
   google_site_verification TEXT,
-  contact_email TEXT DEFAULT 'hello@anilshrestha.design',
+  contact_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np',
   allow_indexing BOOLEAN NOT NULL DEFAULT true,
   maintenance_mode BOOLEAN NOT NULL DEFAULT false,
   enable_whatsapp_inquiry BOOLEAN NOT NULL DEFAULT true,
-  whatsapp_target TEXT DEFAULT '+977 9841234567',
+  whatsapp_target TEXT DEFAULT 'https://wa.me/anilstha.pkr',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS enable_whatsapp_inquiry BOOLEAN DEFAULT true;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_target TEXT DEFAULT '+977 9841234567';
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_target TEXT DEFAULT 'https://wa.me/anilstha.pkr';
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS contact_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np';
 
 CREATE TABLE IF NOT EXISTS public.contact_messages (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -572,15 +600,30 @@ CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (t
               <button
                 type="button"
                 disabled={syncingCloud || isLoading}
+                onClick={handleRelinkAndSyncAll}
+                className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md shadow-blue-600/25 transition-all cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
+                title="Relink Supabase and synchronize all content, settings, and client inquiries"
+              >
+                {syncingCloud ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                <span>Relink &amp; Sync All (Inquiries + Content)</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={syncingCloud || isLoading}
                 onClick={handlePushAll}
-                className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-md shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
+                className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-md shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
               >
                 {syncingCloud ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <UploadCloud className="w-4 h-4" />
                 )}
-                <span>Push All Changes to Supabase & Live Site</span>
+                <span>Push All Changes to Supabase</span>
               </button>
 
               <button
@@ -1319,7 +1362,7 @@ CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (t
                     onChange={(e) =>
                       setFormData({ ...formData, gmail_inquiry_email: e.target.value })
                     }
-                    placeholder="anilshrestha.design@gmail.com"
+                    placeholder="inquiry@anilshrestha11.com.np"
                     className="w-full px-3 py-2 text-xs bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none text-slate-900 dark:text-slate-100"
                   />
                 </div>
@@ -1351,11 +1394,11 @@ CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (t
                 </p>
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 block">
-                    WhatsApp Destination (Phone Number, wa.me Link, or Username)
+                    WhatsApp Destination (wa.me Link, Username, or Phone Number)
                   </label>
                   <input
                     type="text"
-                    value={formData.whatsapp_target || formData.whatsapp_number || '+977 9841234567'}
+                    value={formData.whatsapp_target || formData.whatsapp_number || 'https://wa.me/anilstha.pkr'}
                     onChange={(e) => {
                       const val = e.target.value;
                       setFormData({
@@ -1364,7 +1407,7 @@ CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (t
                         whatsapp_number: val,
                       });
                     }}
-                    placeholder="+977 9841234567, wa.me/9779841234567, or @username"
+                    placeholder="https://wa.me/anilstha.pkr, anilstha.pkr, or +977 9841234567"
                     className="w-full px-3 py-2 text-xs bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none text-slate-900 dark:text-slate-100 font-mono"
                   />
                   {/* Live Resolved Link Preview & Test Button */}

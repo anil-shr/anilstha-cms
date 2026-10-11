@@ -1,18 +1,16 @@
 /**
  * Utility functions for resolving WhatsApp targets into click-to-chat links.
- * Supports phone numbers (with or without '+'), wa.me short links, full URLs, and usernames.
+ * Supports wa.me custom links (e.g. https://wa.me/anilstha.pkr), usernames, phone numbers.
  */
 export function resolveWhatsAppUrl(target: string | undefined | null, messageText: string = ''): string {
-  const clean = (target || '').trim();
+  let clean = (target || '').trim();
   const encodedText = messageText ? encodeURIComponent(messageText) : '';
 
   if (!clean) {
-    // Default fallback to artist's Nepal number
-    const base = 'https://wa.me/9779841234567';
-    return encodedText ? `${base}?text=${encodedText}` : base;
+    clean = 'https://wa.me/anilstha.pkr';
   }
 
-  // If already an absolute http/https link
+  // If already an absolute http/https link (e.g. https://wa.me/anilstha.pkr)
   if (clean.startsWith('http://') || clean.startsWith('https://')) {
     if (!encodedText) return clean;
     const separator = clean.includes('?') ? '&' : '?';
@@ -34,15 +32,14 @@ export function resolveWhatsAppUrl(target: string | undefined | null, messageTex
     return encodedText ? `${base}?text=${encodedText}` : base;
   }
 
-  // If alphanumeric username without digits only
-  const hasLetters = /[a-zA-Z]/.test(clean);
-  if (hasLetters && !clean.includes('+')) {
+  // If custom identifier or username containing letters (e.g. anilstha.pkr)
+  if (/[a-zA-Z]/.test(clean) && !clean.includes('+')) {
     const base = `https://wa.me/${clean}`;
     return encodedText ? `${base}?text=${encodedText}` : base;
   }
 
   // Otherwise, extract digits for clean international phone number
   const digits = clean.replace(/[^0-9]/g, '');
-  const base = `https://wa.me/${digits || '9779841234567'}`;
+  const base = digits ? `https://wa.me/${digits}` : 'https://wa.me/anilstha.pkr';
   return encodedText ? `${base}?text=${encodedText}` : base;
 }

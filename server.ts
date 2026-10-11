@@ -94,7 +94,7 @@ function sanitizeProfile(prof: any) {
     short_bio: prof.short_bio || '',
     long_bio: prof.long_bio || '',
     location: prof.location || 'Pokhara, Nepal',
-    email: prof.email || 'hello@anilshrestha.design',
+    email: prof.email || 'inquiry@anilshrestha11.com.np',
     availability: prof.availability || 'Available for Hire & Projects',
     profile_image_url: prof.profile_image_url || null,
     hero_heading: prof.hero_heading || '',
@@ -175,11 +175,11 @@ function sanitizeMedia(m: any) {
 
 function sanitizeSettings(sett: any) {
   return {
-    id: toUUID(sett.id || 'settings-main'),
-    site_name: sett.site_name || 'Anil Shrestha Portfolio & CMS',
+    id: sett.id || 'settings-1',
+    site_name: sett.site_name || 'Anil Shrestha — Graphic Designer & UI/UX Specialist',
     ga_id: sett.ga_id || null,
     google_site_verification: sett.google_site_verification || null,
-    contact_email: sett.contact_email || 'hello@anilshrestha.design',
+    contact_email: sett.contact_email || 'inquiry@anilshrestha11.com.np',
     allow_indexing: sett.allow_indexing !== false,
     maintenance_mode: Boolean(sett.maintenance_mode),
     updated_at: new Date().toISOString(),
@@ -189,13 +189,28 @@ function sanitizeSettings(sett: any) {
 const EXTENDED_SETTINGS_FILE = path.join(process.cwd(), 'src', 'data', 'settings_extended.json');
 
 function getExtendedSettings(): Record<string, any> {
+  const defaults = {
+    logo_url: null,
+    logo_text: 'AS',
+    fav_name: null,
+    theme_color: '#3b82f6',
+    meta_title: null,
+    meta_description: null,
+    footer_text: null,
+    contact_email: 'inquiry@anilshrestha11.com.np',
+    enable_gmail_inquiry: true,
+    gmail_inquiry_email: 'inquiry@anilshrestha11.com.np',
+    enable_whatsapp_inquiry: true,
+    whatsapp_number: 'https://wa.me/anilstha.pkr',
+    whatsapp_target: 'https://wa.me/anilstha.pkr',
+  };
   try {
     if (fs.existsSync(EXTENDED_SETTINGS_FILE)) {
       const content = fs.readFileSync(EXTENDED_SETTINGS_FILE, 'utf-8');
-      return JSON.parse(content);
+      return { ...defaults, ...JSON.parse(content) };
     }
   } catch {}
-  return {};
+  return defaults;
 }
 
 function saveExtendedSettings(data: Record<string, any>) {
@@ -265,6 +280,7 @@ async function startServer() {
         { data: socialLinks, error: socErr },
         { data: siteSettings, error: settsErr },
         { data: media, error: mediaErr },
+        { data: contactMessages, error: msgErr },
       ] = await Promise.all([
         supabase.from('profiles').select('*').limit(1).maybeSingle(),
         supabase.from('projects').select('*').order('sort_order', { ascending: true }),
@@ -272,12 +288,13 @@ async function startServer() {
         supabase.from('skills').select('*').order('sort_order', { ascending: true }),
         supabase.from('experience').select('*').order('sort_order', { ascending: true }),
         supabase.from('social_links').select('*').order('sort_order', { ascending: true }),
-        supabase.from('site_settings').select('*').limit(1).maybeSingle(),
+        supabase.from('site_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('media').select('*').order('created_at', { ascending: false }),
+        supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
       ]);
 
-      if (profErr || projErr) {
-        console.warn('[Server] Supabase data read notice:', profErr || projErr);
+      if (profErr || projErr || msgErr) {
+        console.warn('[Server] Supabase data read notice:', profErr || projErr || msgErr);
       }
 
       const extendedSettings = getExtendedSettings();
@@ -296,6 +313,7 @@ async function startServer() {
         socialLinks: socialLinks || [],
         siteSettings: mergedSettings,
         media: media || [],
+        contactMessages: contactMessages || [],
       });
     } catch (err: any) {
       console.error('[Server] /api/data error:', err);
@@ -502,11 +520,12 @@ async function startServer() {
         meta_title: raw.meta_title || null,
         meta_description: raw.meta_description || null,
         footer_text: raw.footer_text || null,
+        contact_email: raw.contact_email || 'inquiry@anilshrestha11.com.np',
         enable_gmail_inquiry: raw.enable_gmail_inquiry !== false,
-        gmail_inquiry_email: raw.gmail_inquiry_email || raw.contact_email || 'hello@anilshrestha.design',
+        gmail_inquiry_email: raw.gmail_inquiry_email || raw.contact_email || 'inquiry@anilshrestha11.com.np',
         enable_whatsapp_inquiry: raw.enable_whatsapp_inquiry !== false,
-        whatsapp_number: raw.whatsapp_number || raw.whatsapp_target || '+977 9841234567',
-        whatsapp_target: raw.whatsapp_target || raw.whatsapp_number || '+977 9841234567',
+        whatsapp_number: raw.whatsapp_number || raw.whatsapp_target || 'https://wa.me/anilstha.pkr',
+        whatsapp_target: raw.whatsapp_target || raw.whatsapp_number || 'https://wa.me/anilstha.pkr',
       });
 
       let savedSettings = clean;
@@ -665,6 +684,7 @@ async function startServer() {
 
       if (siteSettings) {
         await supabase.from('site_settings').upsert(sanitizeSettings(siteSettings));
+        saveExtendedSettings(siteSettings);
       }
 
       console.log('[Server] push-all completed successfully!');
@@ -680,7 +700,6 @@ async function startServer() {
 
   // API Route: Contact Form submission
   app.post('/api/contact', async (req: Request, res: Response) => {
-    if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { name, email, subject, message } = req.body;
       const clean = {
@@ -690,8 +709,57 @@ async function startServer() {
         subject: subject || 'Portfolio Inquiry',
         message: message || '',
         status: 'unread',
+        created_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from('contact_messages').insert(clean);
+      if (supabase) {
+        const { error } = await supabase.from('contact_messages').insert(clean);
+        if (error) console.warn('[Server] Supabase insert contact notice:', error.message);
+      }
+      return res.json({ success: true, message: clean });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API Route: Get inquiries
+  app.get('/api/contact', async (_req: Request, res: Response) => {
+    if (!supabase) return res.json({ success: true, messages: [] });
+    try {
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) return res.status(400).json({ success: false, error: error.message });
+      return res.json({ success: true, messages: data || [] });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API Route: Update inquiry status
+  app.patch('/api/admin/inquiry-status', async (req: Request, res: Response) => {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
+    try {
+      const { id, status } = req.body;
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) return res.status(400).json({ success: false, error: error.message });
+      return res.json({ success: true, message: data });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API Route: Delete inquiry
+  app.post('/api/admin/delete-inquiry', async (req: Request, res: Response) => {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
+    try {
+      const { id } = req.body;
+      const { error } = await supabase.from('contact_messages').delete().eq('id', id);
       if (error) return res.status(400).json({ success: false, error: error.message });
       return res.json({ success: true });
     } catch (err: any) {

@@ -100,7 +100,7 @@ export const ResumePage: React.FC = () => {
             </p>
             <p className="flex items-center sm:justify-end gap-1.5">
               <Mail className="w-3.5 h-3.5 text-blue-500" />
-              <span>{profile.email || 'hello@anilshrestha.design'}</span>
+              <span>{profile.email || 'inquiry@anilshrestha11.com.np'}</span>
             </p>
             <p className="flex items-center sm:justify-end gap-1.5">
               <Globe className="w-3.5 h-3.5 text-blue-500" />

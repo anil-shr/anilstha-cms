@@ -46,8 +46,8 @@ export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
               </span>
               <span className="flex items-center gap-1.5">
                 <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
-                <a href={`mailto:${profile.email}`} className="hover:underline">
-                  {profile.email || 'hello@anilshrestha.design'}
+                <a href={`mailto:${profile.email || 'inquiry@anilshrestha11.com.np'}`} className="hover:underline">
+                  {profile.email || 'inquiry@anilshrestha11.com.np'}
                 </a>
               </span>
             </div>
