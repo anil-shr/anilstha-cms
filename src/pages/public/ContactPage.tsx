@@ -16,10 +16,13 @@ import {
   ShieldCheck,
   Lock,
   X,
+  ExternalLink,
 } from 'lucide-react';
+import { SocialIcon } from '../../components/public/SocialIcon';
+import { resolveWhatsAppUrl } from '../../lib/whatsapp';
 
 export const ContactPage: React.FC = () => {
-  const { profile, socialLinks, submitContactMessage, cookieConsent } = useData();
+  const { profile, socialLinks, siteSettings, submitContactMessage, cookieConsent } = useData();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -31,8 +34,15 @@ export const ContactPage: React.FC = () => {
     honeypot: '',
   });
 
+  const enableWhatsApp = siteSettings?.enable_whatsapp_inquiry !== false;
+  const whatsappTarget = siteSettings?.whatsapp_target || siteSettings?.whatsapp_number || '+977 9841234567';
+
+  const [lastSubmitted, setLastSubmitted] = useState<typeof formData | null>(null);
+  const [lastSentToWhatsApp, setLastSentToWhatsApp] = useState(false);
+
   const [hasStarted, setHasStarted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitType, setSubmitType] = useState<'admin' | 'whatsapp' | null>(null);
   const [success, setSuccess] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -46,7 +56,7 @@ export const ContactPage: React.FC = () => {
 
   useEffect(() => {
     updateSEO({
-      title: `Contact — ${profile.name || 'Anil Shrestha'}`,
+      title: `Contact & Inquiries — ${profile.name || 'Anil Shrestha'}`,
       description:
         'Get in touch with Anil Shrestha, Graphic Designer in Nepal for branding inquiries, packaging projects, or freelance design roles.',
       canonicalUrl: typeof window !== 'undefined' ? window.location.origin + '/contact' : '',
@@ -64,8 +74,22 @@ export const ContactPage: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Helper to format inquiry message for WhatsApp
+  const formatWhatsAppText = (data: typeof formData) => {
+    return (
+      `*New Design Project Inquiry*\n\n` +
+      `*Client:* ${data.name}\n` +
+      `*Email:* ${data.email}\n` +
+      `*Service:* ${data.service}\n` +
+      `*Timeline:* ${data.timeline}\n` +
+      (data.subject.trim() ? `*Subject:* ${data.subject}\n` : '') +
+      `\n*Project Scope & Brief:*\n${data.message}\n\n` +
+      `_Sent via anilshrestha11.com.np_`
+    );
+  };
+
+  // Unified submission handler
+  const handleInquirySubmit = async (sendToWhatsAppToo: boolean) => {
     setErrorMsg(null);
 
     // Spam honeypot
@@ -75,22 +99,42 @@ export const ContactPage: React.FC = () => {
     }
 
     if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
-      setErrorMsg('Please fill in your name, email, and message.');
+      setErrorMsg('Please fill in your name, email, and project message.');
       return;
     }
 
     setSubmitting(true);
+    setSubmitType(sendToWhatsAppToo ? 'whatsapp' : 'admin');
+    const submittedData = { ...formData };
+
     try {
+      // 1. Always record in Admin Panel database / Supabase
       await submitContactMessage({
-        name: formData.name,
-        email: formData.email,
-        subject: formData.subject || `Inquiry from ${formData.name} [${formData.service}]`,
-        message: `Service: ${formData.service}\nTimeline: ${formData.timeline}\n\n${formData.message}`,
+        name: submittedData.name,
+        email: submittedData.email,
+        subject: submittedData.subject || `Inquiry from ${submittedData.name} [${submittedData.service}]`,
+        message: `Service: ${submittedData.service}\nTimeline: ${submittedData.timeline}\n\n${submittedData.message}`,
       });
 
-      trackEvent('contact_form_submit', { service: formData.service }, cookieConsent.analytics);
+      trackEvent(
+        'contact_form_submit',
+        { service: submittedData.service, via_whatsapp: sendToWhatsAppToo },
+        cookieConsent.analytics
+      );
+
+      setLastSubmitted(submittedData);
+      setLastSentToWhatsApp(sendToWhatsAppToo);
       setSuccess(true);
       setToastVisible(true);
+
+      // 2. If Button 2 was pressed ("Send to WhatsApp & Admin Panel too"), open WhatsApp
+      if (sendToWhatsAppToo) {
+        const text = formatWhatsAppText(submittedData);
+        const waUrl = resolveWhatsAppUrl(whatsappTarget, text);
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      }
+
+      // Reset form fields
       setFormData({
         name: '',
         email: '',
@@ -101,9 +145,10 @@ export const ContactPage: React.FC = () => {
         honeypot: '',
       });
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to send message. Please email directly.');
+      setErrorMsg(err.message || 'Failed to submit inquiry. Please email directly.');
     } finally {
       setSubmitting(false);
+      setSubmitType(null);
     }
   };
 
@@ -113,13 +158,13 @@ export const ContactPage: React.FC = () => {
       <div className="max-w-3xl space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 text-blue-600 dark:text-sky-400 text-xs font-mono font-semibold">
           <MessageSquare className="w-3.5 h-3.5" />
-          <span>Contact</span>
+          <span>Contact & Project Inquiries</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-          Let's Start a Conversation
+          Let&apos;s Start a Conversation
         </h1>
         <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-          Have an upcoming design project, brand inquiry, or job opportunity? Send a message and I'll respond within 24–48 hours.
+          Have an upcoming design project, brand inquiry, or job opportunity? Submit your brief directly to our studio dashboard or connect instantly via WhatsApp.
         </p>
       </div>
 
@@ -129,7 +174,7 @@ export const ContactPage: React.FC = () => {
           <SpotlightCard className="p-6 sm:p-8 space-y-6">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                Send a Direct Message
+                Send Project Inquiry
               </h2>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
                 <Lock className="w-3 h-3 text-emerald-500" />
@@ -138,22 +183,53 @@ export const ContactPage: React.FC = () => {
             </div>
 
             {success ? (
-              <div className="p-6 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 space-y-2 text-center">
-                <Check className="w-8 h-8 mx-auto text-emerald-600 dark:text-emerald-400" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Message Sent Successfully!</h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Thank you for reaching out. I'll review your details and get back to you promptly.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setSuccess(false)}
-                  className="mt-3 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer"
-                >
-                  Send Another Message
-                </button>
+              <div className="p-6 sm:p-8 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 space-y-5 text-center">
+                <div className="w-12 h-12 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Check className="w-6 h-6 stroke-[3]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Inquiry Submitted to Admin Panel!
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                    Thank you for reaching out. Your project details have been safely recorded in the studio admin dashboard. Anil Shrestha will review your inquiry promptly.
+                  </p>
+                </div>
+
+                {/* If user opted to send to WhatsApp, provide direct link if pop-up was blocked */}
+                {lastSentToWhatsApp && lastSubmitted && (
+                  <div className="pt-2">
+                    <a
+                      href={resolveWhatsAppUrl(whatsappTarget, formatWhatsAppText(lastSubmitted))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold inline-flex items-center gap-2 shadow-xs transition-transform active:scale-95"
+                    >
+                      <SocialIcon platform="whatsapp" className="w-4 h-4 text-white fill-white shrink-0" />
+                      <span>Re-open in WhatsApp Chat</span>
+                      <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                    </a>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSuccess(false)}
+                    className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold underline cursor-pointer"
+                  >
+                    Submit Another Inquiry
+                  </button>
+                </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleInquirySubmit(false);
+                }}
+                className="space-y-4"
+              >
                 <input
                   type="text"
                   name="honeypot"
@@ -286,14 +362,36 @@ export const ContactPage: React.FC = () => {
                   </span>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-blue-600/25 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{submitting ? 'Transmitting...' : 'Send Inquiry'}</span>
-                </button>
+                {/* Two Action Buttons:
+                    1. Send Inquiry (sends to Admin Panel)
+                    2. Send to WhatsApp & Admin (sends to WhatsApp & Admin Panel too, with WhatsApp logo and name) */}
+                <div className={`grid grid-cols-1 ${enableWhatsApp ? 'sm:grid-cols-2' : ''} gap-3 pt-2`}>
+                  {/* Button 1: Send Inquiry to Admin Panel */}
+                  <button
+                    type="button"
+                    onClick={() => handleInquirySubmit(false)}
+                    disabled={submitting}
+                    className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-blue-600/25 transition-all active:scale-95 disabled:opacity-50 cursor-pointer text-center"
+                    title="Send inquiry directly to Admin Panel"
+                  >
+                    <Send className="w-4 h-4 shrink-0" />
+                    <span>{submitting && submitType === 'admin' ? 'Submitting...' : 'Send Inquiry'}</span>
+                  </button>
+
+                  {/* Button 2: Send to WhatsApp & Admin Panel too */}
+                  {enableWhatsApp && (
+                    <button
+                      type="button"
+                      onClick={() => handleInquirySubmit(true)}
+                      disabled={submitting}
+                      className="w-full py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25 transition-all active:scale-95 disabled:opacity-50 cursor-pointer text-center"
+                      title="Send inquiry to WhatsApp & record in Admin Panel database too"
+                    >
+                      <SocialIcon platform="whatsapp" className="w-4 h-4 text-white fill-white shrink-0" />
+                      <span>{submitting && submitType === 'whatsapp' ? 'Opening WhatsApp...' : 'Send to WhatsApp & Admin'}</span>
+                    </button>
+                  )}
+                </div>
               </form>
             )}
           </SpotlightCard>
@@ -332,7 +430,7 @@ export const ContactPage: React.FC = () => {
             </div>
           </SpotlightCard>
 
-          <SpotlightCard className="p-6 space-y-3">
+          <SpotlightCard className="p-6 space-y-3.5">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">Profiles & Portfolios</h2>
             <div className="flex flex-wrap gap-2 pt-1">
               {socialLinks.filter((s) => s.active).map((soc) => (
@@ -341,10 +439,15 @@ export const ContactPage: React.FC = () => {
                   href={soc.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/5 transition-all inline-flex items-center gap-1.5"
+                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/[0.03] hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/5 transition-all inline-flex items-center gap-2 group"
                 >
+                  <SocialIcon
+                    platform={soc.platform}
+                    customIconUrl={soc.custom_icon_url}
+                    className="w-4 h-4 text-blue-600 dark:text-sky-400"
+                  />
                   <span>{soc.platform}</span>
-                  <ArrowUpRight className="w-3 h-3 opacity-60" />
+                  <ArrowUpRight className="w-3 h-3 opacity-50 group-hover:translate-x-0.5 transition-transform" />
                 </a>
               ))}
             </div>
@@ -364,10 +467,12 @@ export const ContactPage: React.FC = () => {
           </div>
           <div className="flex-1 min-w-0 space-y-1 text-left">
             <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-              Message Sent Successfully!
+              Inquiry Sent to Admin Panel!
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Thank you for reaching out. Anil Shrestha has received your note and will reply within 24–48 hours.
+              {lastSentToWhatsApp
+                ? 'Your message has been saved in the admin dashboard and opened in WhatsApp chat.'
+                : 'Thank you for reaching out. Anil Shrestha has received your note in the admin dashboard.'}
             </p>
           </div>
           <button

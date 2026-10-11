@@ -986,13 +986,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       details: `Site Name: ${updated.site_name} • Indexing: ${updated.allow_indexing ? 'Permitted' : 'Disallowed'}`,
     });
     try {
-      await apiPost('/api/admin/save-settings', updated);
+      const res = await apiPost('/api/admin/save-settings', updated);
+      if (res?.siteSettings) {
+        setSiteSettings(res.siteSettings);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(res.siteSettings));
+        } catch {}
+      }
       setIsCloudConnected(true);
     } catch (err) {
       const client = getSupabaseClient();
       if (client) {
         try {
-          await client.from('site_settings').upsert(updated);
+          await client.from('site_settings').upsert({
+            id: updated.id || 'settings-1',
+            site_name: updated.site_name,
+            ga_id: updated.ga_id || null,
+            google_site_verification: updated.google_site_verification || null,
+            contact_email: updated.contact_email || null,
+            allow_indexing: updated.allow_indexing !== false,
+            maintenance_mode: Boolean(updated.maintenance_mode),
+            updated_at: new Date().toISOString(),
+          });
         } catch {}
       }
     }

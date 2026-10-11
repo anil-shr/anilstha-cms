@@ -141,6 +141,12 @@ export interface SiteSettings {
   maintenance_mode: boolean;
   page_meta?: Record<string, PageMetaItem>;
   updated_at?: string;
+  // Inquiry Forwarding & Direct Messaging Options:
+  enable_gmail_inquiry?: boolean;
+  gmail_inquiry_email?: string;
+  enable_whatsapp_inquiry?: boolean;
+  whatsapp_number?: string;
+  whatsapp_target?: string;
 }
 
 export interface ContactMessage {

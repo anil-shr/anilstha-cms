@@ -114,6 +114,7 @@ function sanitizeService(s: any) {
     title: s.title || 'Service Title',
     description: s.description || '',
     icon: s.icon || 'layout',
+    custom_icon_url: s.custom_icon_url || null,
     deliverables: Array.isArray(s.deliverables) ? s.deliverables : [],
     featured: Boolean(s.featured),
     sort_order: typeof s.sort_order === 'number' ? s.sort_order : 0,
@@ -127,6 +128,7 @@ function sanitizeSkill(sk: any) {
     id: toUUID(sk.id),
     name: sk.name || 'Skill',
     category: sk.category || 'General',
+    custom_icon_url: sk.custom_icon_url || null,
     sort_order: typeof sk.sort_order === 'number' ? sk.sort_order : 0,
   };
 }
@@ -151,6 +153,7 @@ function sanitizeSocialLink(soc: any) {
     id: toUUID(soc.id),
     platform: soc.platform || 'Platform',
     url: soc.url || 'https://',
+    custom_icon_url: soc.custom_icon_url || null,
     sort_order: typeof soc.sort_order === 'number' ? soc.sort_order : 0,
     active: soc.active !== false,
   };
@@ -181,6 +184,30 @@ function sanitizeSettings(sett: any) {
     maintenance_mode: Boolean(sett.maintenance_mode),
     updated_at: new Date().toISOString(),
   };
+}
+
+const EXTENDED_SETTINGS_FILE = path.join(process.cwd(), 'src', 'data', 'settings_extended.json');
+
+function getExtendedSettings(): Record<string, any> {
+  try {
+    if (fs.existsSync(EXTENDED_SETTINGS_FILE)) {
+      const content = fs.readFileSync(EXTENDED_SETTINGS_FILE, 'utf-8');
+      return JSON.parse(content);
+    }
+  } catch {}
+  return {};
+}
+
+function saveExtendedSettings(data: Record<string, any>) {
+  try {
+    const dir = path.dirname(EXTENDED_SETTINGS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const current = getExtendedSettings();
+    const updated = { ...current, ...data };
+    fs.writeFileSync(EXTENDED_SETTINGS_FILE, JSON.stringify(updated, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Server] saveExtendedSettings error:', err);
+  }
 }
 
 async function startServer() {
@@ -253,6 +280,13 @@ async function startServer() {
         console.warn('[Server] Supabase data read notice:', profErr || projErr);
       }
 
+      const extendedSettings = getExtendedSettings();
+      const mergedSettings = siteSettings
+        ? { ...siteSettings, ...extendedSettings }
+        : Object.keys(extendedSettings).length > 0
+        ? extendedSettings
+        : null;
+
       return res.json({
         profile: profile || null,
         projects: projects || [],
@@ -260,7 +294,7 @@ async function startServer() {
         skills: skills || [],
         experience: experience || [],
         socialLinks: socialLinks || [],
-        siteSettings: siteSettings || null,
+        siteSettings: mergedSettings,
         media: media || [],
       });
     } catch (err: any) {
@@ -455,12 +489,38 @@ async function startServer() {
 
   // API Route: Admin Update Settings
   app.post('/api/admin/save-settings', async (req: Request, res: Response) => {
-    if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
-      const clean = sanitizeSettings(req.body);
-      const { data, error } = await supabase.from('site_settings').upsert(clean).select().single();
-      if (error) return res.status(400).json({ success: false, error: error.message });
-      return res.json({ success: true, siteSettings: data || clean });
+      const raw = req.body;
+      const clean = sanitizeSettings(raw);
+
+      // Persist extended parameters (logo, monogram, custom favorite name, theme, footer, inquiry channels)
+      saveExtendedSettings({
+        logo_url: raw.logo_url || null,
+        logo_text: raw.logo_text || 'AS',
+        fav_name: raw.fav_name || null,
+        theme_color: raw.theme_color || '#3b82f6',
+        meta_title: raw.meta_title || null,
+        meta_description: raw.meta_description || null,
+        footer_text: raw.footer_text || null,
+        enable_gmail_inquiry: raw.enable_gmail_inquiry !== false,
+        gmail_inquiry_email: raw.gmail_inquiry_email || raw.contact_email || 'hello@anilshrestha.design',
+        enable_whatsapp_inquiry: raw.enable_whatsapp_inquiry !== false,
+        whatsapp_number: raw.whatsapp_number || raw.whatsapp_target || '+977 9841234567',
+        whatsapp_target: raw.whatsapp_target || raw.whatsapp_number || '+977 9841234567',
+      });
+
+      let savedSettings = clean;
+      if (supabase) {
+        const { data, error } = await supabase.from('site_settings').upsert(clean).select().single();
+        if (error) {
+          console.warn('[Server] Supabase save-settings notice:', error);
+        } else if (data) {
+          savedSettings = data;
+        }
+      }
+
+      const merged = { ...savedSettings, ...getExtendedSettings() };
+      return res.json({ success: true, siteSettings: merged });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }

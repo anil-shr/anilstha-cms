@@ -142,8 +142,14 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
   contact_email TEXT DEFAULT 'hello@anilshrestha.design',
   allow_indexing BOOLEAN NOT NULL DEFAULT true,
   maintenance_mode BOOLEAN NOT NULL DEFAULT false,
+  enable_whatsapp_inquiry BOOLEAN NOT NULL DEFAULT true,
+  whatsapp_target TEXT DEFAULT '+977 9841234567',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Idempotent column check for existing databases
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS enable_whatsapp_inquiry BOOLEAN DEFAULT true;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_target TEXT DEFAULT '+977 9841234567';
 
 -- 10. Contact Messages Table
 CREATE TABLE IF NOT EXISTS public.contact_messages (

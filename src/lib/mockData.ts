@@ -320,6 +320,11 @@ export const initialSiteSettings: SiteSettings = {
   contact_email: 'hello@anilshrestha.design',
   allow_indexing: true,
   maintenance_mode: false,
+  enable_gmail_inquiry: true,
+  gmail_inquiry_email: 'hello@anilshrestha.design',
+  enable_whatsapp_inquiry: true,
+  whatsapp_number: '+977 9841234567',
+  whatsapp_target: '+977 9841234567',
 };
 
 export const initialContactMessages: ContactMessage[] = [

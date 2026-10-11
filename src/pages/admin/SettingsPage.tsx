@@ -3,6 +3,8 @@ import { AdminLayout } from '../../components/admin/AdminLayout';
 import { useData } from '../../context/DataContext';
 import { getSupabaseCredentials } from '../../lib/supabase';
 import { InlineImageUpload } from '../../components/admin/InlineImageUpload';
+import { SocialIcon } from '../../components/public/SocialIcon';
+import { resolveWhatsAppUrl } from '../../lib/whatsapp';
 import {
   Check,
   Database,
@@ -35,6 +37,9 @@ import {
   Sliders,
   Monitor,
   Palette,
+  MessageSquare,
+  MessageCircle,
+  Phone,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -366,8 +371,13 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
   contact_email TEXT DEFAULT 'hello@anilshrestha.design',
   allow_indexing BOOLEAN NOT NULL DEFAULT true,
   maintenance_mode BOOLEAN NOT NULL DEFAULT false,
+  enable_whatsapp_inquiry BOOLEAN NOT NULL DEFAULT true,
+  whatsapp_target TEXT DEFAULT '+977 9841234567',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS enable_whatsapp_inquiry BOOLEAN DEFAULT true;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_target TEXT DEFAULT '+977 9841234567';
 
 CREATE TABLE IF NOT EXISTS public.contact_messages (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -1254,6 +1264,133 @@ CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (t
                     Permit Search Engine Indexing (Google, Bing, robots.txt allow)
                   </span>
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Inquiry Delivery Channels (Gmail & WhatsApp) */}
+          <div className="bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
+            <div className="border-b border-slate-100 dark:border-white/10 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <h2 className="text-xs uppercase tracking-wider font-bold text-slate-900 dark:text-white">
+                    Contact Inquiry Delivery Channels (Gmail & WhatsApp)
+                  </h2>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  Enable client options on the Contact page to transmit project inquiries directly to your Gmail inbox and WhatsApp chat in addition to saving in the database.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Gmail Channel Option */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-rose-500" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      Gmail Direct Transmission
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.enable_gmail_inquiry !== false}
+                      onChange={(e) =>
+                        setFormData({ ...formData, enable_gmail_inquiry: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-white/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Allows visitors on /contact to transmit their project brief pre-formatted directly via Google Gmail Web compose & email clients.
+                </p>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 block">
+                    Recipient Gmail / Target Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.gmail_inquiry_email || formData.contact_email || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, gmail_inquiry_email: e.target.value })
+                    }
+                    placeholder="anilshrestha.design@gmail.com"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              {/* WhatsApp Channel Option */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <SocialIcon platform="whatsapp" className="w-4 h-4 text-[#25D366]" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      WhatsApp Inquiry Delivery
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.enable_whatsapp_inquiry !== false}
+                      onChange={(e) =>
+                        setFormData({ ...formData, enable_whatsapp_inquiry: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-white/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                  </label>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Adds the &ldquo;Send to WhatsApp &amp; Admin&rdquo; button to the public contact form. Saves the inquiry to Admin panel and opens WhatsApp in one click.
+                </p>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider font-semibold text-slate-600 dark:text-slate-400 block">
+                    WhatsApp Destination (Phone Number, wa.me Link, or Username)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.whatsapp_target || formData.whatsapp_number || '+977 9841234567'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({
+                        ...formData,
+                        whatsapp_target: val,
+                        whatsapp_number: val,
+                      });
+                    }}
+                    placeholder="+977 9841234567, wa.me/9779841234567, or @username"
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-[#121212] border border-slate-200 dark:border-white/10 rounded-xl focus:border-blue-500 focus:outline-none text-slate-900 dark:text-slate-100 font-mono"
+                  />
+                  {/* Live Resolved Link Preview & Test Button */}
+                  {(() => {
+                    const testUrl = resolveWhatsAppUrl(
+                      formData.whatsapp_target || formData.whatsapp_number,
+                      'Hello Anil, this is a test inquiry message from Admin panel settings.'
+                    );
+                    return (
+                      <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="truncate max-w-[240px] font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+                          {resolveWhatsAppUrl(formData.whatsapp_target || formData.whatsapp_number)}
+                        </span>
+                        <a
+                          href={testUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 font-semibold inline-flex items-center gap-1 hover:underline shrink-0 text-[10px]"
+                        >
+                          <span>Test Link</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           </div>

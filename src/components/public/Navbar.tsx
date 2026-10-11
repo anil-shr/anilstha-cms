@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, Link } from '../../lib/router';
 import { useData } from '../../context/DataContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -9,6 +9,14 @@ import {
   Moon,
   ArrowUpRight,
   Search,
+  Home,
+  User,
+  Wrench,
+  Layers,
+  Briefcase,
+  Gamepad2,
+  Mail,
+  FileText,
 } from 'lucide-react';
 
 export const Navbar: React.FC<{
@@ -35,14 +43,32 @@ export const Navbar: React.FC<{
   };
 
   const navLinks = [
-    { label: 'Home', to: '/' },
-    { label: 'About', to: '/about' },
-    { label: 'Skills', to: '/skills' },
-    { label: 'Services', to: '/services' },
-    { label: 'Work', to: '/work' },
-    { label: 'Games & Tools', to: '/arcade' },
-    { label: 'Contact', to: '/contact' },
+    { label: 'Home', to: '/', icon: Home },
+    { label: 'About', to: '/about', icon: User },
+    { label: 'Skills', to: '/skills', icon: Wrench },
+    { label: 'Services', to: '/services', icon: Layers },
+    { label: 'Work', to: '/work', icon: Briefcase },
+    { label: 'Games & Tools', to: '/arcade', icon: Gamepad2 },
+    { label: 'Resume', to: '/resume', icon: FileText },
+    { label: 'Contact', to: '/contact', icon: Mail },
   ];
+
+  // Lock body scroll and close on Escape when mobile drawer is open
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   const brandTitle = siteSettings?.fav_name || profile?.name || 'Anil Shrestha';
 
@@ -104,14 +130,12 @@ export const Navbar: React.FC<{
             <button
               type="button"
               onClick={onOpenCommandPalette}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/5 hover:bg-slate-200/70 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 transition-colors cursor-pointer text-xs"
-              title="Search & Quick Navigation (Cmd + K)"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white bg-slate-100/90 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 transition-colors cursor-pointer text-xs font-medium"
+              title="Search Portfolio & Tools"
               aria-label="Open command search"
             >
               <Search className="w-3.5 h-3.5" />
-              <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono font-semibold px-1 rounded bg-white dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                ⌘K
-              </kbd>
+              <span className="hidden sm:inline text-xs">Search</span>
             </button>
 
             {/* Smooth Theme Switch (Sun & Moon) */}
@@ -151,23 +175,39 @@ export const Navbar: React.FC<{
         </nav>
       </header>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
+      {/* Mobile Slide-in Drawer Menu (Right-side slide-in) */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${
+          mobileMenuOpen
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Semi-transparent Backdrop */}
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end bg-black/60 backdrop-blur-xs transition-all"
+          className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+          aria-hidden="true"
+        />
+
+        {/* Slide-in Right Panel */}
+        <aside
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile Navigation Drawer"
+          className={`absolute top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-white dark:bg-[#18181b] border-l border-slate-200 dark:border-white/10 shadow-2xl flex flex-col justify-between p-5 sm:p-6 overflow-y-auto transform transition-transform duration-300 ease-out z-10 ${
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-[#18181b] border-t border-slate-200 dark:border-white/10 rounded-t-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
-          >
+          {/* Drawer Header */}
+          <div className="space-y-4">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/10">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
                 {siteSettings?.logo_url ? (
                   <img
                     src={siteSettings.logo_url}
                     alt={brandTitle}
-                    className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
+                    className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-[#111111] dark:bg-white text-white dark:text-slate-950 flex items-center justify-center font-bold text-xs shrink-0">
@@ -178,63 +218,102 @@ export const Navbar: React.FC<{
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
                     {brandTitle}
                   </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    {profile.profession || 'Graphic Designer & UI/UX Specialist'}
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+                    {profile.profession || 'Graphic Designer & UI/UX'}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={toggleTheme}
-                  className="p-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 cursor-pointer"
-                >
-                  {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer transition-colors"
+                aria-label="Close menu drawer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="py-4 space-y-1">
+            {/* Quick Actions (Theme Switch & Search) */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 transition-colors cursor-pointer"
+              >
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="w-4 h-4 text-amber-400" />
+                    <span>Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4 text-slate-700" />
+                    <span>Dark Mode</span>
+                  </>
+                )}
+              </button>
+
+              {onOpenCommandPalette && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenCommandPalette();
+                  }}
+                  className="p-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 transition-colors cursor-pointer"
+                  title="Search site"
+                  aria-label="Open search palette"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Nav Links List */}
+            <nav className="py-2 space-y-1 text-xs font-semibold" aria-label="Mobile Navigation">
               {navLinks.map((link) => {
+                const Icon = link.icon;
                 const isActive = path === link.to;
                 return (
                   <Link
                     key={link.to}
                     to={link.to}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                    className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
                       isActive
-                        ? 'bg-blue-50 dark:bg-sky-950/40 text-blue-600 dark:text-sky-400 font-bold'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                        ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/25'
+                        : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5'
                     }`}
                   >
-                    <span>{link.label}</span>
-                    <ArrowUpRight className="w-4 h-4 opacity-50" />
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{link.label}</span>
+                    </div>
+                    <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
                   </Link>
                 );
               })}
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 dark:border-white/10">
-              <Link
-                to="/contact"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-3.5 rounded-xl bg-[#111111] dark:bg-white text-white dark:text-slate-900 font-bold text-center text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-2"
-              >
-                <span>LET'S WORK TOGETHER</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </Link>
-            </div>
+            </nav>
           </div>
-        </div>
-      )}
+
+          {/* Drawer Footer CTA */}
+          <div className="pt-4 border-t border-slate-100 dark:border-white/10 space-y-3">
+            <Link
+              to="/contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-center text-xs uppercase tracking-wider shadow-md shadow-blue-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <span>LET'S WORK TOGETHER</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+            <p className="text-[10px] text-center text-slate-400 font-mono">
+              Based in Pokhara, Nepal • Worldwide Delivery
+            </p>
+          </div>
+        </aside>
+      </div>
     </>
   );
 };
