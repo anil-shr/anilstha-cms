@@ -15,11 +15,12 @@ import {
   Plus,
   Mail,
   User,
+  Quote,
   ExternalLink,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
-  const { profile, projects, services, skills, contactMessages } = useData();
+  const { profile, projects, services, skills, contactMessages, testimonials } = useData();
 
   const totalProjects = projects.length;
   const publishedProjects = projects.filter((p) => p.published).length;
@@ -101,7 +102,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Quick Actions Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             to="/admin/projects/new"
             className="p-5 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 hover:border-blue-500/40 dark:hover:border-sky-400/30 transition-all flex items-center justify-between group shadow-xs"
@@ -113,6 +114,19 @@ export const DashboardPage: React.FC = () => {
               <p className="text-xs text-slate-500 dark:text-slate-400">Add case study with gallery, tags, and tools.</p>
             </div>
             <Plus className="w-5 h-5 text-blue-600 dark:text-sky-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </Link>
+
+          <Link
+            to="/admin/testimonials"
+            className="p-5 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 hover:border-amber-500/40 dark:hover:border-amber-400/30 transition-all flex items-center justify-between group shadow-xs"
+          >
+            <div className="space-y-1">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                Client Testimonials
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{testimonials.length} reviews • {testimonials.filter(t => t.published).length} live on homepage.</p>
+            </div>
+            <Quote className="w-5 h-5 text-amber-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </Link>
 
           <Link

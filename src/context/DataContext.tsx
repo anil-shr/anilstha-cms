@@ -13,6 +13,7 @@ import {
   CookiePreferences,
   ActivityLogEntry,
   DatabaseSnapshot,
+  Testimonial,
 } from '../types/database';
 import {
   initialProfile,
@@ -24,6 +25,7 @@ import {
   initialMedia,
   initialSiteSettings,
   initialContactMessages,
+  initialTestimonials,
 } from '../lib/mockData';
 import {
   getSupabaseClient,
@@ -43,6 +45,7 @@ interface DataContextType {
   media: MediaItem[];
   siteSettings: SiteSettings;
   contactMessages: ContactMessage[];
+  testimonials: Testimonial[];
   isLoading: boolean;
   isCloudConnected: boolean;
   user: AuthUser | null;
@@ -61,6 +64,11 @@ interface DataContextType {
   saveExperience: (exp: Experience) => Promise<boolean>;
   deleteExperience: (id: string) => Promise<boolean>;
   saveSocialLinks: (links: SocialLink[]) => Promise<boolean>;
+  saveTestimonial: (testi: Testimonial) => Promise<boolean>;
+  deleteTestimonial: (id: string) => Promise<boolean>;
+  toggleTestimonialPublish: (id: string) => Promise<boolean>;
+  toggleTestimonialFeatured: (id: string) => Promise<boolean>;
+  reorderTestimonials: (newOrder: Testimonial[]) => Promise<boolean>;
   addMediaItem: (item: MediaItem) => Promise<boolean>;
   deleteMediaItem: (id: string) => Promise<boolean>;
   uploadMediaFile: (file: File) => Promise<{ success: boolean; item?: MediaItem; error?: string }>;
@@ -97,6 +105,7 @@ const STORAGE_KEYS = {
   MEDIA: 'as_portfolio_media',
   SETTINGS: 'as_portfolio_settings',
   MESSAGES: 'as_portfolio_messages',
+  TESTIMONIALS: 'as_portfolio_testimonials',
   AUTH: 'as_portfolio_auth_user',
   COOKIES: 'as_portfolio_cookie_consent',
   ACTIVITY_LOGS: 'as_portfolio_activity_logs',
@@ -159,6 +168,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES);
     return saved ? JSON.parse(saved) : initialContactMessages;
+  });
+
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.TESTIMONIALS);
+    return saved ? JSON.parse(saved) : initialTestimonials;
   });
 
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -268,6 +282,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [contactMessages]);
 
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.TESTIMONIALS, JSON.stringify(testimonials));
+  }, [testimonials]);
+
+  useEffect(() => {
     if (user) {
       localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(user));
     } else {
@@ -315,6 +333,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (Array.isArray(apiData.contactMessages)) {
             setContactMessages(apiData.contactMessages);
           }
+          if (Array.isArray(apiData.testimonials) && apiData.testimonials.length > 0) {
+            setTestimonials(apiData.testimonials);
+          }
           setIsCloudConnected(true);
           return;
         }
@@ -337,6 +358,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             { data: socData },
             { data: settsData },
             { data: msgData },
+            testiRes,
           ] = await Promise.all([
             client.from('profiles').select('*').limit(1).maybeSingle(),
             client.from('projects').select('*').order('sort_order', { ascending: true }),
@@ -346,6 +368,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             client.from('social_links').select('*').order('sort_order', { ascending: true }),
             client.from('site_settings').select('*').limit(1).maybeSingle(),
             client.from('contact_messages').select('*').order('created_at', { ascending: false }),
+            client.from('testimonials').select('*').order('sort_order', { ascending: true }).then((r) => r, () => ({ data: null })),
           ]);
 
           if (profData) setProfile(profData);
@@ -356,6 +379,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (socData && socData.length > 0) setSocialLinks(socData);
           if (settsData) setSiteSettings(settsData);
           if (msgData && Array.isArray(msgData)) setContactMessages(msgData);
+          const liveTesti = (testiRes as any)?.data;
+          if (liveTesti && Array.isArray(liveTesti) && liveTesti.length > 0) setTestimonials(liveTesti);
           setIsCloudConnected(true);
         } catch (directErr) {
           console.warn('[DataContext] Direct Supabase read notice:', directErr);
@@ -432,6 +457,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
           )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'testimonials' },
+            (payload) => {
+              if (payload.eventType === 'INSERT') {
+                setTestimonials((prev) => {
+                  const exists = prev.some((t) => t.id === payload.new.id);
+                  return exists ? prev : [...prev, payload.new as Testimonial];
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                setTestimonials((prev) =>
+                  prev.map((t) => (t.id === payload.new.id ? (payload.new as Testimonial) : t))
+                );
+              } else if (payload.eventType === 'DELETE') {
+                setTestimonials((prev) => prev.filter((t) => t.id !== payload.old.id));
+              }
+            }
+          )
           .subscribe();
       } catch (realtimeErr) {
         console.warn('Realtime channel subscription error:', realtimeErr);
@@ -457,6 +500,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (e.key === STORAGE_KEYS.MEDIA) setMedia(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.SETTINGS) setSiteSettings(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.MESSAGES) setContactMessages(JSON.parse(e.newValue));
+        if (e.key === STORAGE_KEYS.TESTIMONIALS) setTestimonials(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.AUTH) setUser(JSON.parse(e.newValue));
         if (e.key === STORAGE_KEYS.ACTIVITY_LOGS) setActivityLogs(JSON.parse(e.newValue));
       } catch (err) {
@@ -566,6 +610,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         experienceCount: experience.length,
         socialLinksCount: socialLinks.length,
         mediaCount: media.length,
+        testimonialsCount: testimonials.length,
       },
       data: {
         profile,
@@ -576,6 +621,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         socialLinks,
         media,
         siteSettings,
+        testimonials,
         activityLogs,
       },
     };
@@ -584,7 +630,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       action: 'backup',
       entity: 'settings',
       title: 'Created Manual Database Snapshot Backup',
-      details: `Generated snapshot with ${projects.length} projects, ${services.length} services, and current state`,
+      details: `Generated snapshot with ${projects.length} projects, ${services.length} services, ${testimonials.length} reviews, and current state`,
     });
 
     return snapshot;
@@ -606,6 +652,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (Array.isArray(data.socialLinks)) setSocialLinks(data.socialLinks);
       if (Array.isArray(data.media)) setMedia(data.media);
       if (data.siteSettings) setSiteSettings(data.siteSettings);
+      if (Array.isArray(data.testimonials)) setTestimonials(data.testimonials);
       if (Array.isArray(data.activityLogs)) {
         setActivityLogs(data.activityLogs);
       }
@@ -919,6 +966,100 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const saveTestimonial = async (testi: Testimonial): Promise<boolean> => {
+    const updated: Testimonial = {
+      ...testi,
+      updated_at: new Date().toISOString(),
+    };
+    setTestimonials((prev) => {
+      const idx = prev.findIndex((t) => t.id === testi.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = updated;
+        return next;
+      }
+      return [...prev, updated];
+    });
+
+    addActivityLog({
+      action: 'update',
+      entity: 'testimonial',
+      title: `Saved Client Testimonial: ${testi.client_name}`,
+      details: `${testi.company} (${testi.rating} Stars) - ${testi.published ? 'Published' : 'Draft'}`,
+      user: 'Admin',
+    });
+
+    try {
+      const res = await apiPost('/api/admin/save-testimonial', updated);
+      if (res?.testimonial) {
+        setTestimonials((prev) =>
+          prev.map((t) => (t.id === testi.id ? { ...t, ...res.testimonial } : t))
+        );
+      }
+      setIsCloudConnected(true);
+    } catch (err) {
+      console.warn('[DataContext] Backend save-testimonial notice, trying direct client:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('testimonials').upsert(updated);
+        } catch (dbErr) {
+          console.warn('[DataContext] Direct Supabase testimonial save notice:', dbErr);
+        }
+      }
+    }
+    return true;
+  };
+
+  const deleteTestimonial = async (id: string): Promise<boolean> => {
+    const target = testimonials.find((t) => t.id === id);
+    setTestimonials((prev) => prev.filter((t) => t.id !== id));
+    addActivityLog({
+      action: 'delete',
+      entity: 'testimonial',
+      title: `Deleted Testimonial: ${target?.client_name || id}`,
+      details: target ? `${target.company}` : undefined,
+      user: 'Admin',
+    });
+    try {
+      await apiPost('/api/admin/delete-testimonial', { id });
+    } catch (err) {
+      console.warn('[DataContext] Backend delete-testimonial notice, trying direct client:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('testimonials').delete().eq('id', id);
+        } catch (dbErr) {
+          console.warn('[DataContext] Direct Supabase testimonial delete notice:', dbErr);
+        }
+      }
+    }
+    return true;
+  };
+
+  const toggleTestimonialPublish = async (id: string): Promise<boolean> => {
+    const target = testimonials.find((t) => t.id === id);
+    if (!target) return false;
+    const updated = { ...target, published: !target.published, updated_at: new Date().toISOString() };
+    return await saveTestimonial(updated);
+  };
+
+  const toggleTestimonialFeatured = async (id: string): Promise<boolean> => {
+    const target = testimonials.find((t) => t.id === id);
+    if (!target) return false;
+    const updated = { ...target, featured: !target.featured, updated_at: new Date().toISOString() };
+    return await saveTestimonial(updated);
+  };
+
+  const reorderTestimonials = async (newOrder: Testimonial[]): Promise<boolean> => {
+    const ordered = newOrder.map((t, idx) => ({ ...t, sort_order: idx + 1 }));
+    setTestimonials(ordered);
+    for (const t of ordered) {
+      await saveTestimonial(t);
+    }
+    return true;
+  };
+
   const addMediaItem = async (item: MediaItem): Promise<boolean> => {
     setMedia((prev) => [item, ...prev]);
     try {
@@ -1166,6 +1307,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         socialLinks,
         siteSettings,
         media,
+        testimonials,
       });
 
       setIsCloudConnected(true);
@@ -1173,7 +1315,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         success: true,
         message:
           res.message ||
-          `Successfully pushed all content to Supabase (${projects.length} projects, ${services.length} services, ${skills.length} skills, profile & settings). Changes are now live everywhere.`,
+          `Successfully pushed all content to Supabase (${projects.length} projects, ${services.length} services, ${skills.length} skills, ${testimonials.length} reviews, profile & settings). Changes are now live everywhere.`,
       };
     } catch (err: any) {
       console.warn('[DataContext] Backend push-all error, attempting client fallback:', err);
@@ -1191,6 +1333,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (skills.length > 0) await client.from('skills').upsert(skills);
         if (experience.length > 0) await client.from('experience').upsert(experience);
         if (socialLinks.length > 0) await client.from('social_links').upsert(socialLinks);
+        if (testimonials.length > 0) {
+          try {
+            await client.from('testimonials').upsert(testimonials);
+          } catch {}
+        }
         await client.from('site_settings').upsert(siteSettings);
         setIsCloudConnected(true);
         return {
@@ -1235,6 +1382,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (Array.isArray(apiData.contactMessages)) {
           setContactMessages(apiData.contactMessages);
         }
+        if (Array.isArray(apiData.testimonials) && apiData.testimonials.length > 0) {
+          setTestimonials(apiData.testimonials);
+        }
         setIsCloudConnected(true);
         return { success: true, message: 'Successfully pulled latest live data from Supabase!' };
       }
@@ -1255,6 +1405,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           { data: socData },
           { data: settsData },
           { data: msgData },
+          testiRes,
         ] = await Promise.all([
           client.from('profiles').select('*').limit(1).maybeSingle(),
           client.from('projects').select('*').order('sort_order', { ascending: true }),
@@ -1264,6 +1415,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           client.from('social_links').select('*').order('sort_order', { ascending: true }),
           client.from('site_settings').select('*').limit(1).maybeSingle(),
           client.from('contact_messages').select('*').order('created_at', { ascending: false }),
+          client.from('testimonials').select('*').order('sort_order', { ascending: true }).then((r) => r, () => ({ data: null })),
         ]);
 
         if (profData) setProfile(profData);
@@ -1274,6 +1426,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (socData && socData.length > 0) setSocialLinks(socData);
         if (settsData) setSiteSettings(settsData);
         if (msgData && Array.isArray(msgData)) setContactMessages(msgData);
+        const liveTesti = (testiRes as any)?.data;
+        if (liveTesti && Array.isArray(liveTesti) && liveTesti.length > 0) setTestimonials(liveTesti);
         setIsCloudConnected(true);
         return { success: true, message: 'Successfully pulled latest live data from Supabase!' };
       } catch (fallbackErr: any) {
@@ -1369,6 +1523,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         media,
         siteSettings,
         contactMessages,
+        testimonials,
         isLoading,
         isCloudConnected,
         user,
@@ -1387,6 +1542,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         saveExperience,
         deleteExperience,
         saveSocialLinks,
+        saveTestimonial,
+        deleteTestimonial,
+        toggleTestimonialPublish,
+        toggleTestimonialFeatured,
+        reorderTestimonials,
         addMediaItem,
         deleteMediaItem,
         uploadMediaFile,

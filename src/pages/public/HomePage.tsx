@@ -7,6 +7,7 @@ import { Project } from '../../types/database';
 import { SpotlightCard } from '../../components/public/SpotlightCard';
 import { SocialIcon } from '../../components/public/SocialIcon';
 import { ProjectCardSkeleton } from '../../components/public/Skeletons';
+import { TestimonialsSlider } from '../../components/public/TestimonialsSlider';
 import {
   Palette,
   Layout,
@@ -368,6 +369,11 @@ export const HomePage: React.FC = () => {
           ))}
         </div>
       </section>
+
+      {/* ========================================================================= */}
+      {/* CLIENT TESTIMONIALS & REPUTATION SLIDER                                   */}
+      {/* ========================================================================= */}
+      <TestimonialsSlider />
 
       {/* ========================================================================= */}
       {/* DOWNLOAD RESUME / CV SECTION                                             */}

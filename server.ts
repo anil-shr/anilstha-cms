@@ -1,6 +1,6 @@
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import { createServer as createViteServer } from 'vite';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
@@ -186,6 +186,50 @@ function sanitizeSettings(sett: any) {
   };
 }
 
+function sanitizeTestimonial(t: any) {
+  return {
+    id: toUUID(t.id),
+    client_name: t.client_name || 'Client Name',
+    client_role: t.client_role || 'Client Role',
+    company: t.company || 'Company',
+    quote: t.quote || '',
+    avatar_url: t.avatar_url || null,
+    rating: typeof t.rating === 'number' ? Math.max(1, Math.min(5, Math.round(t.rating))) : 5,
+    project_title: t.project_title || null,
+    project_url: t.project_url || null,
+    featured: Boolean(t.featured),
+    published: t.published !== false,
+    sort_order: typeof t.sort_order === 'number' ? t.sort_order : 0,
+    created_at: t.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+const TESTIMONIALS_FILE = path.join(process.cwd(), 'src', 'data', 'testimonials.json');
+
+function getTestimonialsFromFile(): any[] {
+  try {
+    if (fs.existsSync(TESTIMONIALS_FILE)) {
+      const content = fs.readFileSync(TESTIMONIALS_FILE, 'utf-8');
+      const parsed = JSON.parse(content);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch (err) {
+    console.warn('[Server] Error reading testimonials.json:', err);
+  }
+  return [];
+}
+
+function saveTestimonialsToFile(list: any[]) {
+  try {
+    const dir = path.dirname(TESTIMONIALS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(TESTIMONIALS_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Server] Error writing testimonials.json:', err);
+  }
+}
+
 const EXTENDED_SETTINGS_FILE = path.join(process.cwd(), 'src', 'data', 'settings_extended.json');
 
 function getExtendedSettings(): Record<string, any> {
@@ -243,13 +287,16 @@ async function startServer() {
         { count: skCount },
         { count: expCount },
         { count: socCount },
+        testiRes,
       ] = await Promise.all([
         supabase.from('projects').select('*', { count: 'exact', head: true }),
         supabase.from('services').select('*', { count: 'exact', head: true }),
         supabase.from('skills').select('*', { count: 'exact', head: true }),
         supabase.from('experience').select('*', { count: 'exact', head: true }),
         supabase.from('social_links').select('*', { count: 'exact', head: true }),
+        supabase.from('testimonials').select('*', { count: 'exact', head: true }).then((r) => r, () => ({ count: null })),
       ]);
+      const testimonialsFromFile = getTestimonialsFromFile();
       return res.json({
         connected: true,
         counts: {
@@ -258,6 +305,7 @@ async function startServer() {
           skills: skCount || 0,
           experience: expCount || 0,
           social_links: socCount || 0,
+          testimonials: (testiRes as any)?.count ?? testimonialsFromFile.length,
         },
       });
     } catch (err: any) {
@@ -281,6 +329,7 @@ async function startServer() {
         { data: siteSettings, error: settsErr },
         { data: media, error: mediaErr },
         { data: contactMessages, error: msgErr },
+        testiRes,
       ] = await Promise.all([
         supabase.from('profiles').select('*').limit(1).maybeSingle(),
         supabase.from('projects').select('*').order('sort_order', { ascending: true }),
@@ -291,6 +340,7 @@ async function startServer() {
         supabase.from('site_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('media').select('*').order('created_at', { ascending: false }),
         supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
+        supabase.from('testimonials').select('*').order('sort_order', { ascending: true }).then((r) => r, () => ({ data: null })),
       ]);
 
       if (profErr || projErr || msgErr) {
@@ -304,6 +354,13 @@ async function startServer() {
         ? extendedSettings
         : null;
 
+      const liveTestimonials = (testiRes as any)?.data;
+      const fileTestimonials = getTestimonialsFromFile();
+      const resolvedTestimonials =
+        Array.isArray(liveTestimonials) && liveTestimonials.length > 0
+          ? liveTestimonials
+          : fileTestimonials;
+
       return res.json({
         profile: profile || null,
         projects: projects || [],
@@ -314,6 +371,7 @@ async function startServer() {
         siteSettings: mergedSettings,
         media: media || [],
         contactMessages: contactMessages || [],
+        testimonials: resolvedTestimonials || [],
       });
     } catch (err: any) {
       console.error('[Server] /api/data error:', err);
@@ -682,6 +740,19 @@ async function startServer() {
         }
       }
 
+      const { testimonials } = req.body;
+      if (Array.isArray(testimonials) && testimonials.length > 0) {
+        const cleanedList = testimonials.map(sanitizeTestimonial);
+        saveTestimonialsToFile(cleanedList);
+        for (const t of cleanedList) {
+          try {
+            await supabase.from('testimonials').upsert(t);
+          } catch (tErr) {
+            console.warn('[Server] push-all testimonial Supabase warning:', tErr);
+          }
+        }
+      }
+
       if (siteSettings) {
         await supabase.from('site_settings').upsert(sanitizeSettings(siteSettings));
         saveExtendedSettings(siteSettings);
@@ -694,6 +765,78 @@ async function startServer() {
       });
     } catch (err: any) {
       console.error('[Server] push-all error:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API Route: Testimonials GET
+  app.get('/api/testimonials', async (_req: Request, res: Response) => {
+    try {
+      if (supabase) {
+        try {
+          const { data, error } = await supabase.from('testimonials').select('*').order('sort_order', { ascending: true });
+          if (!error && Array.isArray(data) && data.length > 0) {
+            return res.json({ success: true, testimonials: data });
+          }
+        } catch (dbErr) {
+          console.warn('[Server] Supabase get-testimonials notice:', dbErr);
+        }
+      }
+      return res.json({ success: true, testimonials: getTestimonialsFromFile() });
+    } catch (err: any) {
+      return res.json({ success: true, testimonials: getTestimonialsFromFile() });
+    }
+  });
+
+  // API Route: Admin Save Testimonial
+  app.post('/api/admin/save-testimonial', async (req: Request, res: Response) => {
+    try {
+      const clean = sanitizeTestimonial(req.body);
+      const currentList = getTestimonialsFromFile();
+      const existingIdx = currentList.findIndex((t) => toUUID(t.id) === clean.id);
+      let updatedList: any[];
+      if (existingIdx >= 0) {
+        updatedList = [...currentList];
+        updatedList[existingIdx] = { ...currentList[existingIdx], ...clean };
+      } else {
+        updatedList = [...currentList, clean];
+      }
+      saveTestimonialsToFile(updatedList);
+
+      if (supabase) {
+        try {
+          const { data, error } = await supabase.from('testimonials').upsert(clean).select().single();
+          if (!error && data) {
+            return res.json({ success: true, testimonial: data });
+          }
+        } catch (dbErr) {
+          console.warn('[Server] Supabase save-testimonial warning:', dbErr);
+        }
+      }
+      return res.json({ success: true, testimonial: clean });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API Route: Admin Delete Testimonial
+  app.post('/api/admin/delete-testimonial', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.body;
+      const uuid = toUUID(id);
+      const currentList = getTestimonialsFromFile();
+      const updatedList = currentList.filter((t) => toUUID(t.id) !== uuid && t.id !== id);
+      saveTestimonialsToFile(updatedList);
+
+      if (supabase) {
+        try {
+          await supabase.from('testimonials').delete().eq('id', uuid);
+        } catch (dbErr) {
+          console.warn('[Server] Supabase delete-testimonial warning:', dbErr);
+        }
+      }
+      return res.json({ success: true, id });
+    } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }
   });

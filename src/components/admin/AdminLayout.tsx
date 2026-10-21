@@ -22,6 +22,7 @@ import {
   Cloud,
   HardDrive,
   MessageSquare,
+  Quote,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -85,6 +86,7 @@ export const AdminLayout: React.FC<{
     { label: 'Profile & Bio', to: '/admin/profile', icon: User },
     { label: 'Projects Archive', to: '/admin/projects', icon: Briefcase },
     { label: 'Services', to: '/admin/services', icon: Layers },
+    { label: 'Testimonials', to: '/admin/testimonials', icon: Quote },
     { label: 'Skills & Tools', to: '/admin/skills', icon: Wrench },
     { label: 'Experience', to: '/admin/experience', icon: History },
     { label: 'Social Links', to: '/admin/social-links', icon: Share2 },

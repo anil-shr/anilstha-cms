@@ -42,6 +42,7 @@ import { MediaLibraryPage } from './pages/admin/MediaLibraryPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { AnalyticsDashboardPage } from './pages/admin/AnalyticsDashboardPage';
 import { InquiriesPage } from './pages/admin/InquiriesPage';
+import { TestimonialsManagerPage } from './pages/admin/TestimonialsManagerPage';
 
 export default function App() {
   const { path } = useRouter();
@@ -114,6 +115,9 @@ export default function App() {
     }
     if (normalizedPath === '/admin/inquiries' || normalizedPath === '/admin/messages') {
       return <InquiriesPage />;
+    }
+    if (normalizedPath === '/admin/testimonials') {
+      return <TestimonialsManagerPage />;
     }
     if (normalizedPath === '/admin/media') {
       return <MediaLibraryPage />;

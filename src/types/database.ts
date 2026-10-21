@@ -149,6 +149,23 @@ export interface SiteSettings {
   whatsapp_target?: string;
 }
 
+export interface Testimonial {
+  id: string;
+  client_name: string;
+  client_role: string;
+  company: string;
+  quote: string;
+  avatar_url?: string;
+  rating: number; // 1 to 5
+  project_title?: string;
+  project_url?: string;
+  featured: boolean;
+  published: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ContactMessage {
   id: string;
   name: string;
@@ -176,7 +193,7 @@ export interface AuthUser {
 export interface ActivityLogEntry {
   id: string;
   action: 'create' | 'update' | 'delete' | 'publish' | 'backup' | 'sync';
-  entity: 'project' | 'service' | 'profile' | 'skill' | 'experience' | 'social' | 'media' | 'settings';
+  entity: 'project' | 'service' | 'profile' | 'skill' | 'experience' | 'social' | 'media' | 'settings' | 'testimonial';
   title: string;
   details?: string;
   timestamp: string;
@@ -195,6 +212,7 @@ export interface DatabaseSnapshot {
     experienceCount: number;
     socialLinksCount: number;
     mediaCount: number;
+    testimonialsCount?: number;
   };
   data: {
     profile: Profile;
@@ -205,6 +223,7 @@ export interface DatabaseSnapshot {
     socialLinks: SocialLink[];
     media: MediaItem[];
     siteSettings: SiteSettings;
+    testimonials?: Testimonial[];
     activityLogs?: ActivityLogEntry[];
   };
 }

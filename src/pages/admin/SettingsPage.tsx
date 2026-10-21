@@ -418,6 +418,23 @@ CREATE TABLE IF NOT EXISTS public.contact_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS public.testimonials (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  client_name TEXT NOT NULL,
+  client_role TEXT NOT NULL DEFAULT 'Client',
+  company TEXT NOT NULL DEFAULT 'Company',
+  quote TEXT NOT NULL,
+  avatar_url TEXT,
+  rating INT NOT NULL DEFAULT 5,
+  project_title TEXT,
+  project_url TEXT,
+  featured BOOLEAN NOT NULL DEFAULT true,
+  published BOOLEAN NOT NULL DEFAULT true,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Enable RLS and grant public access
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
@@ -428,6 +445,7 @@ ALTER TABLE public.social_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.media ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Public Read Projects" ON public.projects FOR SELECT USING (true);
@@ -437,6 +455,7 @@ CREATE POLICY "Public Read Experience" ON public.experience FOR SELECT USING (tr
 CREATE POLICY "Public Read Social" ON public.social_links FOR SELECT USING (true);
 CREATE POLICY "Public Read Media" ON public.media FOR SELECT USING (true);
 CREATE POLICY "Public Read Settings" ON public.site_settings FOR SELECT USING (true);
+CREATE POLICY "Public Read Testimonials" ON public.testimonials FOR SELECT USING (true);
 
 CREATE POLICY "Full Access Profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Full Access Projects" ON public.projects FOR ALL USING (true) WITH CHECK (true);
@@ -446,7 +465,8 @@ CREATE POLICY "Full Access Experience" ON public.experience FOR ALL USING (true)
 CREATE POLICY "Full Access Social" ON public.social_links FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Full Access Media" ON public.media FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Full Access Settings" ON public.site_settings FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (true) WITH CHECK (true);`;
+CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Full Access Testimonials" ON public.testimonials FOR ALL USING (true) WITH CHECK (true);`;
 
     navigator.clipboard.writeText(sqlContent);
     setCopiedSql(true);
