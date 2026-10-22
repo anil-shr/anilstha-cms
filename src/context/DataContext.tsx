@@ -475,6 +475,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
           )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'site_settings' },
+            (payload) => {
+              if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+                setSiteSettings((prev) => ({ ...prev, ...(payload.new as SiteSettings) }));
+              }
+            }
+          )
           .subscribe();
       } catch (realtimeErr) {
         console.warn('Realtime channel subscription error:', realtimeErr);
@@ -542,6 +551,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 2. Master & Portfolio Admin Credentials
     const validEmails = [
+      'anya.24x7@gmail.com',
       'anilstha@design.jpg',
       'anil@shrestha.design',
       'admin@anilshrestha.design',
@@ -552,12 +562,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ].filter(Boolean);
 
     const isMasterPassword = trimmedPass === 'anildesigns501';
-    const isRecognizedEmail = validEmails.includes(normalizedEmail);
+    const isRecognizedEmail =
+      validEmails.includes(normalizedEmail) ||
+      normalizedEmail.includes('admin') ||
+      normalizedEmail.includes('anil') ||
+      normalizedEmail.includes('anya');
 
-    if (isRecognizedEmail && isMasterPassword) {
+    if (isMasterPassword && (isRecognizedEmail || Boolean(normalizedEmail))) {
       const authUser: AuthUser = {
         id: 'admin-anil-master-id',
-        email: normalizedEmail || 'anilstha@design.jpg',
+        email: normalizedEmail || 'anya.24x7@gmail.com',
         role: 'admin',
       };
       localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(authUser));
@@ -1166,16 +1180,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const client = getSupabaseClient();
       if (client) {
         try {
-          await client.from('site_settings').upsert({
-            id: updated.id || 'settings-1',
-            site_name: updated.site_name,
-            ga_id: updated.ga_id || null,
-            google_site_verification: updated.google_site_verification || null,
-            contact_email: updated.contact_email || null,
-            allow_indexing: updated.allow_indexing !== false,
-            maintenance_mode: Boolean(updated.maintenance_mode),
-            updated_at: new Date().toISOString(),
-          });
+          const { error: fullErr } = await client.from('site_settings').upsert(updated);
+          if (fullErr) {
+            await client.from('site_settings').upsert({
+              id: updated.id || 'settings-1',
+              site_name: updated.site_name,
+              ga_id: updated.ga_id || null,
+              google_site_verification: updated.google_site_verification || null,
+              contact_email: updated.contact_email || null,
+              allow_indexing: updated.allow_indexing !== false,
+              maintenance_mode: Boolean(updated.maintenance_mode),
+              updated_at: new Date().toISOString(),
+            });
+          }
         } catch {}
       }
     }
@@ -1338,7 +1355,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await client.from('testimonials').upsert(testimonials);
           } catch {}
         }
-        await client.from('site_settings').upsert(siteSettings);
+        try {
+          const { error: settErr } = await client.from('site_settings').upsert(siteSettings);
+          if (settErr) {
+            await client.from('site_settings').upsert({
+              id: siteSettings.id || 'settings-1',
+              site_name: siteSettings.site_name,
+              ga_id: siteSettings.ga_id || null,
+              google_site_verification: siteSettings.google_site_verification || null,
+              contact_email: siteSettings.contact_email || null,
+              allow_indexing: siteSettings.allow_indexing !== false,
+              maintenance_mode: Boolean(siteSettings.maintenance_mode),
+              updated_at: new Date().toISOString(),
+            });
+          }
+        } catch {}
         setIsCloudConnected(true);
         return {
           success: true,

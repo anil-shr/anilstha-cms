@@ -398,11 +398,27 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
   contact_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np',
   allow_indexing BOOLEAN NOT NULL DEFAULT true,
   maintenance_mode BOOLEAN NOT NULL DEFAULT false,
+  logo_url TEXT,
+  logo_text TEXT DEFAULT 'AS',
+  fav_icon_url TEXT,
+  fav_name TEXT DEFAULT 'Anil Shrestha Portfolio & CMS',
+  theme_color TEXT DEFAULT '#3b82f6',
+  meta_title TEXT,
+  meta_description TEXT,
+  footer_text TEXT,
   enable_whatsapp_inquiry BOOLEAN NOT NULL DEFAULT true,
   whatsapp_target TEXT DEFAULT 'https://wa.me/anilstha.pkr',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS logo_text TEXT DEFAULT 'AS';
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS fav_icon_url TEXT;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS fav_name TEXT DEFAULT 'Anil Shrestha Portfolio & CMS';
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS theme_color TEXT DEFAULT '#3b82f6';
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS meta_title TEXT;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS meta_description TEXT;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS footer_text TEXT;
 ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS enable_whatsapp_inquiry BOOLEAN DEFAULT true;
 ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_target TEXT DEFAULT 'https://wa.me/anilstha.pkr';
 ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS contact_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np';

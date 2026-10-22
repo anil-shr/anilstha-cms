@@ -173,7 +173,7 @@ function sanitizeMedia(m: any) {
   };
 }
 
-function sanitizeSettings(sett: any) {
+function sanitizeBaseSettings(sett: any) {
   return {
     id: sett.id || 'settings-1',
     site_name: sett.site_name || 'Anil Shrestha — Graphic Designer & UI/UX Specialist',
@@ -184,6 +184,26 @@ function sanitizeSettings(sett: any) {
     maintenance_mode: Boolean(sett.maintenance_mode),
     updated_at: new Date().toISOString(),
   };
+}
+
+function sanitizeFullSettings(sett: any) {
+  return {
+    ...sanitizeBaseSettings(sett),
+    logo_url: sett.logo_url || null,
+    logo_text: sett.logo_text || 'AS',
+    fav_icon_url: sett.fav_icon_url || null,
+    fav_name: sett.fav_name || null,
+    theme_color: sett.theme_color || '#3b82f6',
+    meta_title: sett.meta_title || null,
+    meta_description: sett.meta_description || null,
+    footer_text: sett.footer_text || null,
+    enable_whatsapp_inquiry: sett.enable_whatsapp_inquiry !== false,
+    whatsapp_target: sett.whatsapp_target || sett.whatsapp_number || 'https://wa.me/anilstha.pkr',
+  };
+}
+
+function sanitizeSettings(sett: any) {
+  return sanitizeBaseSettings(sett);
 }
 
 function sanitizeTestimonial(t: any) {
@@ -236,6 +256,7 @@ function getExtendedSettings(): Record<string, any> {
   const defaults = {
     logo_url: null,
     logo_text: 'AS',
+    fav_icon_url: null,
     fav_name: null,
     theme_color: '#3b82f6',
     meta_title: null,
@@ -567,12 +588,14 @@ async function startServer() {
   app.post('/api/admin/save-settings', async (req: Request, res: Response) => {
     try {
       const raw = req.body;
-      const clean = sanitizeSettings(raw);
+      const full = sanitizeFullSettings(raw);
+      const base = sanitizeBaseSettings(raw);
 
-      // Persist extended parameters (logo, monogram, custom favorite name, theme, footer, inquiry channels)
+      // Persist extended parameters (logo, monogram, custom favicon, favorite name, theme, footer, inquiry channels)
       saveExtendedSettings({
         logo_url: raw.logo_url || null,
         logo_text: raw.logo_text || 'AS',
+        fav_icon_url: raw.fav_icon_url || null,
         fav_name: raw.fav_name || null,
         theme_color: raw.theme_color || '#3b82f6',
         meta_title: raw.meta_title || null,
@@ -586,17 +609,25 @@ async function startServer() {
         whatsapp_target: raw.whatsapp_target || raw.whatsapp_number || 'https://wa.me/anilstha.pkr',
       });
 
-      let savedSettings = clean;
+      let savedSettings: any = full;
       if (supabase) {
-        const { data, error } = await supabase.from('site_settings').upsert(clean).select().single();
+        // Attempt full dynamic upsert first (if user ran ALTER TABLE or added columns to Supabase)
+        const { data, error } = await supabase.from('site_settings').upsert(full).select().single();
         if (error) {
-          console.warn('[Server] Supabase save-settings notice:', error);
+          console.warn('[Server] Supabase full save-settings notice (retrying with base columns):', error.message);
+          // Fallback to base columns so site_settings never errors
+          const { data: baseData, error: baseError } = await supabase.from('site_settings').upsert(base).select().single();
+          if (baseError) {
+            console.warn('[Server] Supabase base save-settings notice:', baseError.message);
+          } else if (baseData) {
+            savedSettings = { ...full, ...baseData };
+          }
         } else if (data) {
           savedSettings = data;
         }
       }
 
-      const merged = { ...savedSettings, ...getExtendedSettings() };
+      const merged = { ...getExtendedSettings(), ...savedSettings };
       return res.json({ success: true, siteSettings: merged });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
@@ -754,8 +785,19 @@ async function startServer() {
       }
 
       if (siteSettings) {
-        await supabase.from('site_settings').upsert(sanitizeSettings(siteSettings));
+        const full = sanitizeFullSettings(siteSettings);
+        const base = sanitizeBaseSettings(siteSettings);
         saveExtendedSettings(siteSettings);
+        try {
+          const { error: settErr } = await supabase.from('site_settings').upsert(full);
+          if (settErr) {
+            await supabase.from('site_settings').upsert(base);
+          }
+        } catch {
+          try {
+            await supabase.from('site_settings').upsert(base);
+          } catch {}
+        }
       }
 
       console.log('[Server] push-all completed successfully!');
@@ -984,7 +1026,7 @@ Sitemap: https://anilshrestha11.com.np/sitemap.xml
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(__dirname, 'dist');
+    const distPath = path.resolve(process.cwd(), 'dist');
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));
       app.get('*', (_req: Request, res: Response) => {
