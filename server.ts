@@ -370,7 +370,14 @@ async function startServer() {
 
       const extendedSettings = getExtendedSettings();
       const mergedSettings = siteSettings
-        ? { ...siteSettings, ...extendedSettings }
+        ? {
+            ...extendedSettings,
+            ...siteSettings,
+            logo_url: siteSettings.logo_url || extendedSettings.logo_url || null,
+            fav_icon_url: siteSettings.fav_icon_url || extendedSettings.fav_icon_url || null,
+            logo_text: siteSettings.logo_text || extendedSettings.logo_text || 'AS',
+            fav_name: siteSettings.fav_name || extendedSettings.fav_name || 'Anil Shrestha Portfolio & CMS',
+          }
         : Object.keys(extendedSettings).length > 0
         ? extendedSettings
         : null;

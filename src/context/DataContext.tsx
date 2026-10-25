@@ -366,7 +366,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             client.from('skills').select('*').order('sort_order', { ascending: true }),
             client.from('experience').select('*').order('sort_order', { ascending: true }),
             client.from('social_links').select('*').order('sort_order', { ascending: true }),
-            client.from('site_settings').select('*').limit(1).maybeSingle(),
+            client.from('site_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
             client.from('contact_messages').select('*').order('created_at', { ascending: false }),
             client.from('testimonials').select('*').order('sort_order', { ascending: true }).then((r) => r, () => ({ data: null })),
           ]);
@@ -1177,23 +1177,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setIsCloudConnected(true);
     } catch (err) {
-      const client = getSupabaseClient();
-      if (client) {
-        try {
-          const { error: fullErr } = await client.from('site_settings').upsert(updated);
-          if (fullErr) {
-            await client.from('site_settings').upsert({
-              id: updated.id || 'settings-1',
-              site_name: updated.site_name,
-              ga_id: updated.ga_id || null,
-              google_site_verification: updated.google_site_verification || null,
-              contact_email: updated.contact_email || null,
-              allow_indexing: updated.allow_indexing !== false,
-              maintenance_mode: Boolean(updated.maintenance_mode),
-              updated_at: new Date().toISOString(),
-            });
-          }
-        } catch {}
+      console.warn('[DataContext] Backend save-settings notice:', err);
+    }
+
+    // Direct Supabase client sync ensures changes hit Supabase immediately across all hosting environments
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        const { error: fullErr } = await client.from('site_settings').upsert(updated);
+        if (fullErr) {
+          await client.from('site_settings').upsert({
+            id: updated.id || 'settings-1',
+            site_name: updated.site_name,
+            ga_id: updated.ga_id || null,
+            google_site_verification: updated.google_site_verification || null,
+            contact_email: updated.contact_email || null,
+            allow_indexing: updated.allow_indexing !== false,
+            maintenance_mode: Boolean(updated.maintenance_mode),
+            updated_at: new Date().toISOString(),
+          });
+        }
+        setIsCloudConnected(true);
+      } catch (dbErr) {
+        console.warn('[DataContext] Direct Supabase site_settings sync notice:', dbErr);
       }
     }
     return true;
@@ -1444,7 +1450,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           client.from('skills').select('*').order('sort_order', { ascending: true }),
           client.from('experience').select('*').order('sort_order', { ascending: true }),
           client.from('social_links').select('*').order('sort_order', { ascending: true }),
-          client.from('site_settings').select('*').limit(1).maybeSingle(),
+          client.from('site_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
           client.from('contact_messages').select('*').order('created_at', { ascending: false }),
           client.from('testimonials').select('*').order('sort_order', { ascending: true }).then((r) => r, () => ({ data: null })),
         ]);
