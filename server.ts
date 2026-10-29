@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import { createServer as createViteServer } from 'vite';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
@@ -47,11 +47,72 @@ if (supabaseUrl && supabaseKey) {
       auth: { persistSession: false },
     });
     console.log('[Server] Supabase client initialized with endpoint:', supabaseUrl);
-
-    // Ensure public storage bucket exists for media uploads
-    supabase.storage.createBucket('portfolio-media', { public: true, fileSizeLimit: 10485760 }).catch(() => {});
   } catch (err) {
-    console.error('[Server] Failed to initialize Supabase client:', err);
+    console.warn('[Server] Supabase init warning:', err);
+  }
+}
+
+// Contact form rate-limiting store (sliding 10-minute window)
+const contactRateLimits = new Map<string, number[]>();
+function checkContactRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000;
+  const maxAllowed = 5;
+  const history = (contactRateLimits.get(ip) || []).filter((ts) => now - ts < windowMs);
+  if (history.length >= maxAllowed) {
+    contactRateLimits.set(ip, history);
+    return false;
+  }
+  history.push(now);
+  contactRateLimits.set(ip, history);
+  return true;
+}
+
+// Admin Authentication & Authorization Middleware
+export async function authenticateAdmin(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Administrative session token required' });
+  }
+
+  const token = authHeader.substring(7).trim();
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Malformed authorization token' });
+  }
+
+  if (!supabase) {
+    return res.status(503).json({ success: false, error: 'Database service unavailable' });
+  }
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ success: false, error: 'Session expired or invalid. Please sign in again.' });
+    }
+
+    const adminEmail = (process.env.ADMIN_EMAIL || 'anya.24x7@gmail.com').trim().toLowerCase();
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const isExplicitAdminRole = user.app_metadata?.role === 'admin' || user.user_metadata?.role === 'admin';
+
+    let isAuthorized = userEmail === adminEmail || isExplicitAdminRole;
+
+    if (!isAuthorized) {
+      const { data: prof } = await supabase.from('profiles').select('email').limit(1).maybeSingle();
+      const profEmail = (prof?.email || '').trim().toLowerCase();
+      if (profEmail && userEmail === profEmail) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ success: false, error: 'Forbidden: administrative privileges required' });
+    }
+
+    (req as any).adminUser = user;
+    next();
+  } catch (err: any) {
+    console.error('[Server] Admin auth verification exception:', err);
+    return res.status(401).json({ success: false, error: 'Authentication verification failure' });
   }
 }
 
@@ -293,6 +354,15 @@ function saveExtendedSettings(data: Record<string, any>) {
 async function startServer() {
   const app = express();
 
+  // Enforce standard security headers
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
   app.use(express.json({ limit: '20mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
@@ -310,14 +380,14 @@ async function startServer() {
         { count: socCount },
         testiRes,
       ] = await Promise.all([
-        supabase.from('projects').select('*', { count: 'exact', head: true }),
-        supabase.from('services').select('*', { count: 'exact', head: true }),
+        supabase.from('projects').select('*', { count: 'exact', head: true }).eq('published', true),
+        supabase.from('services').select('*', { count: 'exact', head: true }).eq('active', true),
         supabase.from('skills').select('*', { count: 'exact', head: true }),
         supabase.from('experience').select('*', { count: 'exact', head: true }),
-        supabase.from('social_links').select('*', { count: 'exact', head: true }),
-        supabase.from('testimonials').select('*', { count: 'exact', head: true }).then((r) => r, () => ({ count: null })),
+        supabase.from('social_links').select('*', { count: 'exact', head: true }).eq('active', true),
+        supabase.from('testimonials').select('*', { count: 'exact', head: true }).eq('published', true).then((r) => r, () => ({ count: null })),
       ]);
-      const testimonialsFromFile = getTestimonialsFromFile();
+      const testimonialsFromFile = getTestimonialsFromFile().filter((t: any) => t.published !== false);
       return res.json({
         connected: true,
         counts: {
@@ -334,7 +404,7 @@ async function startServer() {
     }
   });
 
-  // API Route: Public Unified Data Feed (reads live from Supabase)
+  // API Route: Public Unified Data Feed (reads live from Supabase, NO contact messages or drafts)
   app.get('/api/data', async (_req: Request, res: Response) => {
     if (!supabase) {
       return res.status(503).json({ error: 'Supabase not connected' });
@@ -349,23 +419,21 @@ async function startServer() {
         { data: socialLinks, error: socErr },
         { data: siteSettings, error: settsErr },
         { data: media, error: mediaErr },
-        { data: contactMessages, error: msgErr },
         testiRes,
       ] = await Promise.all([
         supabase.from('profiles').select('*').limit(1).maybeSingle(),
-        supabase.from('projects').select('*').order('sort_order', { ascending: true }),
-        supabase.from('services').select('*').order('sort_order', { ascending: true }),
+        supabase.from('projects').select('*').eq('published', true).order('sort_order', { ascending: true }),
+        supabase.from('services').select('*').eq('active', true).order('sort_order', { ascending: true }),
         supabase.from('skills').select('*').order('sort_order', { ascending: true }),
         supabase.from('experience').select('*').order('sort_order', { ascending: true }),
-        supabase.from('social_links').select('*').order('sort_order', { ascending: true }),
+        supabase.from('social_links').select('*').eq('active', true).order('sort_order', { ascending: true }),
         supabase.from('site_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('media').select('*').order('created_at', { ascending: false }),
-        supabase.from('contact_messages').select('*').order('created_at', { ascending: false }),
-        supabase.from('testimonials').select('*').order('sort_order', { ascending: true }).then((r) => r, () => ({ data: null })),
+        supabase.from('testimonials').select('*').eq('published', true).order('sort_order', { ascending: true }).then((r) => r, () => ({ data: null })),
       ]);
 
-      if (profErr || projErr || msgErr) {
-        console.warn('[Server] Supabase data read notice:', profErr || projErr || msgErr);
+      if (profErr || projErr) {
+        console.warn('[Server] Supabase data read notice:', profErr || projErr);
       }
 
       const extendedSettings = getExtendedSettings();
@@ -382,8 +450,30 @@ async function startServer() {
         ? extendedSettings
         : null;
 
+      // Safe public site settings: strip internal private tokens/credentials
+      const publicSettings = mergedSettings ? {
+        id: mergedSettings.id,
+        site_name: mergedSettings.site_name,
+        logo_url: mergedSettings.logo_url,
+        logo_text: mergedSettings.logo_text,
+        fav_icon_url: mergedSettings.fav_icon_url,
+        fav_name: mergedSettings.fav_name,
+        theme_color: mergedSettings.theme_color,
+        meta_title: mergedSettings.meta_title,
+        meta_description: mergedSettings.meta_description,
+        footer_text: mergedSettings.footer_text,
+        contact_email: mergedSettings.contact_email,
+        enable_gmail_inquiry: mergedSettings.enable_gmail_inquiry !== false,
+        enable_whatsapp_inquiry: mergedSettings.enable_whatsapp_inquiry !== false,
+        whatsapp_target: mergedSettings.whatsapp_target,
+        allow_indexing: mergedSettings.allow_indexing !== false,
+        maintenance_mode: Boolean(mergedSettings.maintenance_mode),
+        ga_id: mergedSettings.ga_id,
+        google_site_verification: mergedSettings.google_site_verification,
+      } : null;
+
       const liveTestimonials = (testiRes as any)?.data;
-      const fileTestimonials = getTestimonialsFromFile();
+      const fileTestimonials = getTestimonialsFromFile().filter((t: any) => t.published !== false);
       const resolvedTestimonials =
         Array.isArray(liveTestimonials) && liveTestimonials.length > 0
           ? liveTestimonials
@@ -396,9 +486,8 @@ async function startServer() {
         skills: skills || [],
         experience: experience || [],
         socialLinks: socialLinks || [],
-        siteSettings: mergedSettings,
+        siteSettings: publicSettings,
         media: media || [],
-        contactMessages: contactMessages || [],
         testimonials: resolvedTestimonials || [],
       });
     } catch (err: any) {
@@ -408,7 +497,7 @@ async function startServer() {
   });
 
   // API Route: Admin Save Project
-  app.post('/api/admin/save-project', async (req: Request, res: Response) => {
+  app.post('/api/admin/save-project', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const rawProject = req.body;
@@ -429,7 +518,7 @@ async function startServer() {
   });
 
   // API Route: Admin Delete Project
-  app.post('/api/admin/delete-project', async (req: Request, res: Response) => {
+  app.post('/api/admin/delete-project', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id } = req.body;
@@ -446,7 +535,7 @@ async function startServer() {
   });
 
   // API Route: Toggle Project Publish
-  app.post('/api/admin/toggle-project-publish', async (req: Request, res: Response) => {
+  app.post('/api/admin/toggle-project-publish', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id, published } = req.body;
@@ -463,7 +552,7 @@ async function startServer() {
   });
 
   // API Route: Toggle Project Feature
-  app.post('/api/admin/toggle-project-feature', async (req: Request, res: Response) => {
+  app.post('/api/admin/toggle-project-feature', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id, featured } = req.body;
@@ -480,7 +569,7 @@ async function startServer() {
   });
 
   // API Route: Admin Update Profile
-  app.post('/api/admin/update-profile', async (req: Request, res: Response) => {
+  app.post('/api/admin/update-profile', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const clean = sanitizeProfile(req.body);
@@ -494,7 +583,7 @@ async function startServer() {
   });
 
   // API Route: Admin Save Service
-  app.post('/api/admin/save-service', async (req: Request, res: Response) => {
+  app.post('/api/admin/save-service', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const clean = sanitizeService(req.body);
@@ -507,7 +596,7 @@ async function startServer() {
   });
 
   // API Route: Admin Delete Service
-  app.post('/api/admin/delete-service', async (req: Request, res: Response) => {
+  app.post('/api/admin/delete-service', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id } = req.body;
@@ -521,7 +610,7 @@ async function startServer() {
   });
 
   // API Route: Admin Save Skill
-  app.post('/api/admin/save-skill', async (req: Request, res: Response) => {
+  app.post('/api/admin/save-skill', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const clean = sanitizeSkill(req.body);
@@ -534,7 +623,7 @@ async function startServer() {
   });
 
   // API Route: Admin Delete Skill
-  app.post('/api/admin/delete-skill', async (req: Request, res: Response) => {
+  app.post('/api/admin/delete-skill', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id } = req.body;
@@ -548,7 +637,7 @@ async function startServer() {
   });
 
   // API Route: Admin Save Experience
-  app.post('/api/admin/save-experience', async (req: Request, res: Response) => {
+  app.post('/api/admin/save-experience', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const clean = sanitizeExperience(req.body);
@@ -561,7 +650,7 @@ async function startServer() {
   });
 
   // API Route: Admin Delete Experience
-  app.post('/api/admin/delete-experience', async (req: Request, res: Response) => {
+  app.post('/api/admin/delete-experience', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id } = req.body;
@@ -575,7 +664,7 @@ async function startServer() {
   });
 
   // API Route: Admin Save Social Links
-  app.post('/api/admin/save-social', async (req: Request, res: Response) => {
+  app.post('/api/admin/save-social', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const links = Array.isArray(req.body) ? req.body : req.body.links;
@@ -592,7 +681,7 @@ async function startServer() {
   });
 
   // API Route: Admin Update Settings
-  app.post('/api/admin/save-settings', async (req: Request, res: Response) => {
+  app.post('/api/admin/save-settings', authenticateAdmin, async (req: Request, res: Response) => {
     try {
       const raw = req.body;
       const full = sanitizeFullSettings(raw);
@@ -642,7 +731,7 @@ async function startServer() {
   });
 
   // API Route: Admin Save Media Record
-  app.post('/api/admin/save-media', async (req: Request, res: Response) => {
+  app.post('/api/admin/save-media', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const clean = sanitizeMedia(req.body);
@@ -655,7 +744,7 @@ async function startServer() {
   });
 
   // API Route: Admin Delete Media Record & Storage file
-  app.post('/api/admin/delete-media', async (req: Request, res: Response) => {
+  app.post('/api/admin/delete-media', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id, filename } = req.body;
@@ -674,7 +763,7 @@ async function startServer() {
   });
 
   // API Route: Admin Upload Media directly to Supabase Storage & Database
-  app.post('/api/admin/upload-media', async (req: Request, res: Response) => {
+  app.post('/api/admin/upload-media', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { filename, mime_type, base64, alt_text, dimensions } = req.body;
@@ -733,7 +822,7 @@ async function startServer() {
   });
 
   // API Route: Push ALL Local State to Supabase
-  app.post('/api/admin/push-all', async (req: Request, res: Response) => {
+  app.post('/api/admin/push-all', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { profile, projects, services, skills, experience, socialLinks, siteSettings, media } = req.body;
@@ -838,7 +927,7 @@ async function startServer() {
   });
 
   // API Route: Admin Save Testimonial
-  app.post('/api/admin/save-testimonial', async (req: Request, res: Response) => {
+  app.post('/api/admin/save-testimonial', authenticateAdmin, async (req: Request, res: Response) => {
     try {
       const clean = sanitizeTestimonial(req.body);
       const currentList = getTestimonialsFromFile();
@@ -869,7 +958,7 @@ async function startServer() {
   });
 
   // API Route: Admin Delete Testimonial
-  app.post('/api/admin/delete-testimonial', async (req: Request, res: Response) => {
+  app.post('/api/admin/delete-testimonial', authenticateAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.body;
       const uuid = toUUID(id);
@@ -890,32 +979,70 @@ async function startServer() {
     }
   });
 
-  // API Route: Contact Form submission
+  // API Route: Public Contact Form submission (Rate-limited, Honeypot-guarded, Validated)
   app.post('/api/contact', async (req: Request, res: Response) => {
     try {
-      const { name, email, subject, message } = req.body;
+      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+      if (!checkContactRateLimit(clientIp)) {
+        return res.status(429).json({ success: false, error: 'Too many submissions. Please wait a few moments before trying again.' });
+      }
+
+      // Honeypot check: reject bots filling hidden fields
+      const { _hp, website, fax } = req.body;
+      if (_hp || website || fax) {
+        return res.status(400).json({ success: false, error: 'Spam submission detected.' });
+      }
+
+      const rawName = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+      const rawEmail = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+      const rawSubject = typeof req.body.subject === 'string' ? req.body.subject.trim() : '';
+      const rawMessage = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+      const rawServices = typeof req.body.services === 'string' ? req.body.services.trim() : '';
+
+      // Input validation
+      if (!rawName || rawName.length < 2 || rawName.length > 100) {
+        return res.status(400).json({ success: false, error: 'Please provide a valid name (2-100 characters).' });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!rawEmail || !emailRegex.test(rawEmail) || rawEmail.length > 120) {
+        return res.status(400).json({ success: false, error: 'Please provide a valid email address.' });
+      }
+
+      if (!rawMessage || rawMessage.length < 5 || rawMessage.length > 4000) {
+        return res.status(400).json({ success: false, error: 'Please provide a message between 5 and 4000 characters.' });
+      }
+
       const clean = {
         id: crypto.randomUUID(),
-        name: name || 'Anonymous',
-        email: email || '',
-        subject: subject || 'Portfolio Inquiry',
-        message: message || '',
+        name: rawName.replace(/<[^>]*>?/gm, ''),
+        email: rawEmail,
+        subject: (rawSubject || 'Portfolio Inquiry').slice(0, 150).replace(/<[^>]*>?/gm, ''),
+        message: rawMessage.replace(/<[^>]*>?/gm, ''),
+        services: rawServices ? rawServices.slice(0, 200).replace(/<[^>]*>?/gm, '') : null,
         status: 'unread',
         created_at: new Date().toISOString(),
       };
+
       if (supabase) {
         const { error } = await supabase.from('contact_messages').insert(clean);
-        if (error) console.warn('[Server] Supabase insert contact notice:', error.message);
+        if (error) {
+          console.warn('[Server] Supabase insert contact notice:', error.message);
+          return res.status(500).json({ success: false, error: 'Unable to save inquiry. Please try again or reach out directly.' });
+        }
       }
-      return res.json({ success: true, message: clean });
+
+      console.log(`[Server] Valid contact message received from ${clean.name} (${clean.email})`);
+      return res.json({ success: true, message: 'Thank you! Your message has been sent successfully.' });
     } catch (err: any) {
-      return res.status(500).json({ success: false, error: err.message });
+      console.error('[Server] Contact submit exception:', err);
+      return res.status(500).json({ success: false, error: 'An unexpected error occurred while processing your message.' });
     }
   });
 
-  // API Route: Get inquiries
-  app.get('/api/contact', async (_req: Request, res: Response) => {
-    if (!supabase) return res.json({ success: true, messages: [] });
+  // API Route: Admin Get Inquiries (PROTECTED — requires Supabase auth bearer token)
+  app.get('/api/admin/inquiries', authenticateAdmin, async (_req: Request, res: Response) => {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { data, error } = await supabase
         .from('contact_messages')
@@ -928,8 +1055,8 @@ async function startServer() {
     }
   });
 
-  // API Route: Update inquiry status
-  app.patch('/api/admin/inquiry-status', async (req: Request, res: Response) => {
+  // API Route: Update inquiry status (PROTECTED)
+  app.patch('/api/admin/inquiry-status', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id, status } = req.body;
@@ -946,8 +1073,8 @@ async function startServer() {
     }
   });
 
-  // API Route: Delete inquiry
-  app.post('/api/admin/delete-inquiry', async (req: Request, res: Response) => {
+  // API Route: Delete inquiry (PROTECTED)
+  app.post('/api/admin/delete-inquiry', authenticateAdmin, async (req: Request, res: Response) => {
     if (!supabase) return res.status(503).json({ error: 'Supabase not connected' });
     try {
       const { id } = req.body;
@@ -1023,6 +1150,11 @@ Disallow: /api/private/*
 
 Sitemap: https://anilshrestha11.com.np/sitemap.xml
 `);
+  });
+
+  // 404 handler for unmatched API routes (prevents SPA HTML fallback for API endpoints)
+  app.all('/api/*', (_req: Request, res: Response) => {
+    return res.status(404).json({ error: 'API endpoint not found' });
   });
 
   // Mount Vite or serve static assets

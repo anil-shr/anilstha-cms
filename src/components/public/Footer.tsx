@@ -1,14 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from '../../lib/router';
 import { useData } from '../../context/DataContext';
 import { SocialIcon } from './SocialIcon';
-import { Mail, MapPin, ArrowUpRight } from 'lucide-react';
+import { Mail, MapPin, ArrowUpRight, Volume2, VolumeX } from 'lucide-react';
+import { isSoundEnabled, setSoundEnabled, playToggle } from '../../lib/soundEffects';
 
 export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
   onOpenCookieSettings,
 }) => {
   const { profile, socialLinks, siteSettings } = useData();
   const currentYear = new Date().getFullYear();
+  const [soundOn, setSoundOn] = useState(false);
+
+  useEffect(() => {
+    setSoundOn(isSoundEnabled());
+    const handleSync = (e: Event) => {
+      const custom = e as CustomEvent<{ enabled: boolean }>;
+      if (custom.detail) setSoundOn(custom.detail.enabled);
+    };
+    window.addEventListener('sound-toggle-changed', handleSync);
+    return () => window.removeEventListener('sound-toggle-changed', handleSync);
+  }, []);
+
+  const handleToggleSound = () => {
+    const next = !soundOn;
+    setSoundEnabled(next);
+    setSoundOn(next);
+    if (next) {
+      playToggle();
+    }
+  };
 
   const activeSocials = socialLinks.filter((s) => s.active);
   const brandName = siteSettings?.fav_name || profile.name || 'Anil Shrestha';
@@ -128,6 +149,25 @@ export const Footer: React.FC<{ onOpenCookieSettings?: () => void }> = ({
               </button>
             )}
             <Link to="/sitemap.xml" className="hover:text-slate-800 dark:hover:text-slate-300 transition-colors">Sitemap</Link>
+            <button
+              type="button"
+              onClick={handleToggleSound}
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-200/50 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              title={soundOn ? 'Sound Effects Enabled (Click to Mute)' : 'Sound Effects Muted (Click to Enable)'}
+              aria-label={soundOn ? 'Mute synthesized sound effects' : 'Enable synthesized sound effects'}
+            >
+              {soundOn ? (
+                <>
+                  <Volume2 className="w-3 h-3 text-blue-600 dark:text-sky-400" />
+                  <span>Audio: On</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-3 h-3 text-slate-400" />
+                  <span>Audio: Off</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Sparkles,
 } from 'lucide-react';
+import { playClick } from '../../lib/soundEffects';
 
 const ClientAvatar: React.FC<{
   avatarUrl?: string | null;
@@ -85,10 +86,12 @@ export const TestimonialsSlider: React.FC<{
   );
 
   const handlePrev = useCallback(() => {
+    playClick();
     goToSlide((currentIndex - 1 + total) % total);
   }, [currentIndex, total, goToSlide]);
 
   const handleNext = useCallback(() => {
+    playClick();
     goToSlide((currentIndex + 1) % total);
   }, [currentIndex, total, goToSlide]);
 

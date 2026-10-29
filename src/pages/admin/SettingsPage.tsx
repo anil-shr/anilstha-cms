@@ -5,6 +5,7 @@ import { getSupabaseCredentials } from '../../lib/supabase';
 import { InlineImageUpload } from '../../components/admin/InlineImageUpload';
 import { SocialIcon } from '../../components/public/SocialIcon';
 import { resolveWhatsAppUrl } from '../../lib/whatsapp';
+import { MASTER_MIGRATION_SQL, VERIFICATION_SQL } from '../../lib/migrationSql';
 import {
   Check,
   Database,
@@ -82,6 +83,7 @@ export const SettingsPage: React.FC = () => {
     message: string;
   } | null>(null);
   const [copiedSql, setCopiedSql] = useState(false);
+  const [copiedVerificationSql, setCopiedVerificationSql] = useState(false);
 
   // Manual Database Snapshot State
   const [snapshotSuccess, setSnapshotSuccess] = useState<string | null>(null);
@@ -272,375 +274,15 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleCopySqlSetup = () => {
-    const sqlContent = `-- MASTER SUPABASE DATABASE FIX & SCHEMA UPGRADE
--- Safe, 100% idempotent: run in Supabase SQL Editor to make every change public instantly
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
--- 1. Profiles Table
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  user_id UUID,
-  name TEXT NOT NULL DEFAULT 'Anil Shrestha',
-  profession TEXT NOT NULL DEFAULT 'Graphic Designer & UI/UX Specialist',
-  headline TEXT NOT NULL DEFAULT 'Creative designer turning ideas into visual experiences.',
-  short_bio TEXT,
-  long_bio TEXT,
-  location TEXT DEFAULT 'Pokhara, Nepal',
-  email TEXT DEFAULT 'inquiry@anilshrestha11.com.np',
-  availability TEXT DEFAULT 'Available for Hire & Projects',
-  profile_image_url TEXT,
-  hero_heading TEXT,
-  hero_description TEXT,
-  primary_cta_label TEXT DEFAULT 'Explore My Work',
-  primary_cta_url TEXT DEFAULT '/work',
-  secondary_cta_label TEXT DEFAULT 'View Services',
-  secondary_cta_url TEXT DEFAULT '/services',
-  resume_url TEXT DEFAULT '/resume',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS user_id UUID;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS name TEXT DEFAULT 'Anil Shrestha';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profession TEXT DEFAULT 'Graphic Designer & UI/UX Specialist';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS headline TEXT DEFAULT 'Creative designer turning ideas into visual experiences.';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS short_bio TEXT;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS long_bio TEXT;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS location TEXT DEFAULT 'Pokhara, Nepal';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT DEFAULT 'inquiry@anilshrestha11.com.np';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS availability TEXT DEFAULT 'Available for Hire & Projects';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profile_image_url TEXT;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS hero_heading TEXT;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS hero_description TEXT;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS primary_cta_label TEXT DEFAULT 'Explore My Work';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS primary_cta_url TEXT DEFAULT '/work';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS secondary_cta_label TEXT DEFAULT 'View Services';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS secondary_cta_url TEXT DEFAULT '/services';
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS resume_url TEXT DEFAULT '/resume';
-
--- 2. Projects Table
-CREATE TABLE IF NOT EXISTS public.projects (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  title TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  category TEXT NOT NULL DEFAULT 'Brand Identity',
-  subcategory TEXT,
-  tags TEXT[] DEFAULT '{}',
-  description TEXT NOT NULL DEFAULT '',
-  short_description TEXT,
-  full_description TEXT,
-  year TEXT NOT NULL DEFAULT '2026',
-  client TEXT,
-  role TEXT DEFAULT 'Lead Graphic Designer',
-  services TEXT[] DEFAULT '{}',
-  tools TEXT[] DEFAULT '{}',
-  challenge TEXT,
-  solution TEXT,
-  result TEXT,
-  approach TEXT,
-  cover_image_url TEXT,
-  gallery_urls TEXT[] DEFAULT '{}',
-  project_url TEXT,
-  featured BOOLEAN NOT NULL DEFAULT false,
-  published BOOLEAN NOT NULL DEFAULT true,
-  sort_order INT NOT NULL DEFAULT 0,
-  seo_title TEXT,
-  seo_description TEXT,
-  og_image_url TEXT,
-  alt_text TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS subcategory TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS short_description TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS full_description TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS year TEXT DEFAULT '2026';
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS client TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'Lead Graphic Designer';
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS services TEXT[] DEFAULT '{}';
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS tools TEXT[] DEFAULT '{}';
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS challenge TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS solution TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS result TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS approach TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS cover_image_url TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS gallery_urls TEXT[] DEFAULT '{}';
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS project_url TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT false;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS published BOOLEAN DEFAULT true;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS seo_title TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS seo_description TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS og_image_url TEXT;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS alt_text TEXT;
-
--- 3. Services Table
-CREATE TABLE IF NOT EXISTS public.services (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  icon TEXT DEFAULT 'layout',
-  custom_icon_url TEXT,
-  deliverables TEXT[] DEFAULT '{}',
-  featured BOOLEAN NOT NULL DEFAULT false,
-  sort_order INT NOT NULL DEFAULT 0,
-  active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.services ADD COLUMN IF NOT EXISTS custom_icon_url TEXT;
-ALTER TABLE public.services ADD COLUMN IF NOT EXISTS deliverables TEXT[] DEFAULT '{}';
-ALTER TABLE public.services ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT false;
-ALTER TABLE public.services ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
-ALTER TABLE public.services ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
-
--- 4. Skills Table
-CREATE TABLE IF NOT EXISTS public.skills (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  name TEXT NOT NULL,
-  category TEXT NOT NULL DEFAULT 'Core Disciplines',
-  proficiency INT DEFAULT 90,
-  icon TEXT,
-  custom_icon_url TEXT,
-  featured BOOLEAN DEFAULT true,
-  sort_order INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS proficiency INT DEFAULT 90;
-ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS icon TEXT;
-ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS custom_icon_url TEXT;
-ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT true;
-ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
-
--- 5. Experience Table
-CREATE TABLE IF NOT EXISTS public.experience (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  company TEXT NOT NULL,
-  position TEXT,
-  role TEXT,
-  company_url TEXT,
-  period TEXT,
-  description TEXT,
-  start_date TEXT,
-  end_date TEXT,
-  current BOOLEAN NOT NULL DEFAULT false,
-  location TEXT DEFAULT 'Nepal',
-  achievements TEXT[] DEFAULT '{}',
-  technologies TEXT[] DEFAULT '{}',
-  sort_order INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS position TEXT;
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS role TEXT;
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS company_url TEXT;
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS period TEXT;
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS start_date TEXT;
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS end_date TEXT;
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS current BOOLEAN DEFAULT false;
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS location TEXT DEFAULT 'Nepal';
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS achievements TEXT[] DEFAULT '{}';
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS technologies TEXT[] DEFAULT '{}';
-ALTER TABLE public.experience ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
-
--- 6. Social Links Table
-CREATE TABLE IF NOT EXISTS public.social_links (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  platform TEXT NOT NULL,
-  url TEXT NOT NULL,
-  icon TEXT,
-  custom_icon_url TEXT,
-  sort_order INT NOT NULL DEFAULT 0,
-  active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.social_links ADD COLUMN IF NOT EXISTS icon TEXT;
-ALTER TABLE public.social_links ADD COLUMN IF NOT EXISTS custom_icon_url TEXT;
-ALTER TABLE public.social_links ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
-ALTER TABLE public.social_links ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
-
--- 7. Media Library Table
-CREATE TABLE IF NOT EXISTS public.media (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  filename TEXT NOT NULL,
-  original_name TEXT NOT NULL,
-  url TEXT NOT NULL,
-  file_size BIGINT NOT NULL DEFAULT 0,
-  mime_type TEXT NOT NULL DEFAULT 'image/jpeg',
-  dimensions TEXT,
-  alt_text TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 8. Site Settings & Dynamic Branding Table
-CREATE TABLE IF NOT EXISTS public.site_settings (
-  id TEXT PRIMARY KEY DEFAULT 'settings-1',
-  site_name TEXT NOT NULL DEFAULT 'Anil Shrestha Portfolio & CMS',
-  ga_id TEXT,
-  google_site_verification TEXT,
-  contact_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np',
-  allow_indexing BOOLEAN NOT NULL DEFAULT true,
-  maintenance_mode BOOLEAN NOT NULL DEFAULT false,
-  logo_url TEXT,
-  logo_text TEXT DEFAULT 'AS',
-  fav_icon_url TEXT,
-  fav_name TEXT DEFAULT 'Anil Shrestha Portfolio & CMS',
-  theme_color TEXT DEFAULT '#3b82f6',
-  meta_title TEXT,
-  meta_description TEXT,
-  footer_text TEXT,
-  enable_gmail_inquiry BOOLEAN DEFAULT true,
-  gmail_inquiry_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np',
-  enable_whatsapp_inquiry BOOLEAN NOT NULL DEFAULT true,
-  whatsapp_number TEXT DEFAULT 'https://wa.me/anilstha.pkr',
-  whatsapp_target TEXT DEFAULT 'https://wa.me/anilstha.pkr',
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS logo_url TEXT;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS logo_text TEXT DEFAULT 'AS';
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS fav_icon_url TEXT;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS fav_name TEXT DEFAULT 'Anil Shrestha Portfolio & CMS';
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS theme_color TEXT DEFAULT '#3b82f6';
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS meta_title TEXT;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS meta_description TEXT;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS footer_text TEXT;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS enable_gmail_inquiry BOOLEAN DEFAULT true;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS gmail_inquiry_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np';
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS enable_whatsapp_inquiry BOOLEAN DEFAULT true;
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_number TEXT DEFAULT 'https://wa.me/anilstha.pkr';
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS whatsapp_target TEXT DEFAULT 'https://wa.me/anilstha.pkr';
-ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS contact_email TEXT DEFAULT 'inquiry@anilshrestha11.com.np';
-
--- 9. Contact Messages Table
-CREATE TABLE IF NOT EXISTS public.contact_messages (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  subject TEXT NOT NULL,
-  message TEXT NOT NULL,
-  services TEXT,
-  status TEXT NOT NULL DEFAULT 'unread',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 10. Testimonials Table
-CREATE TABLE IF NOT EXISTS public.testimonials (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  client_name TEXT NOT NULL,
-  client_role TEXT NOT NULL DEFAULT 'Client',
-  company TEXT NOT NULL DEFAULT 'Company',
-  quote TEXT NOT NULL,
-  avatar_url TEXT,
-  rating INT NOT NULL DEFAULT 5,
-  project_title TEXT,
-  project_url TEXT,
-  featured BOOLEAN NOT NULL DEFAULT true,
-  published BOOLEAN NOT NULL DEFAULT true,
-  sort_order INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- ROW LEVEL SECURITY (RLS) & PUBLIC ACCESS POLICIES
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.experience ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.social_links ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.media ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
-
--- Clean drop existing policies to avoid duplicate name errors
-DROP POLICY IF EXISTS "Public Read Profiles" ON public.profiles;
-DROP POLICY IF EXISTS "Public Read Projects" ON public.projects;
-DROP POLICY IF EXISTS "Public Read Services" ON public.services;
-DROP POLICY IF EXISTS "Public Read Skills" ON public.skills;
-DROP POLICY IF EXISTS "Public Read Experience" ON public.experience;
-DROP POLICY IF EXISTS "Public Read Social" ON public.social_links;
-DROP POLICY IF EXISTS "Public Read Media" ON public.media;
-DROP POLICY IF EXISTS "Public Read Settings" ON public.site_settings;
-DROP POLICY IF EXISTS "Public Read Testimonials" ON public.testimonials;
-DROP POLICY IF EXISTS "Public Read Contact Messages" ON public.contact_messages;
-
-DROP POLICY IF EXISTS "Full Access Profiles" ON public.profiles;
-DROP POLICY IF EXISTS "Full Access Projects" ON public.projects;
-DROP POLICY IF EXISTS "Full Access Services" ON public.services;
-DROP POLICY IF EXISTS "Full Access Skills" ON public.skills;
-DROP POLICY IF EXISTS "Full Access Experience" ON public.experience;
-DROP POLICY IF EXISTS "Full Access Social" ON public.social_links;
-DROP POLICY IF EXISTS "Full Access Media" ON public.media;
-DROP POLICY IF EXISTS "Full Access Settings" ON public.site_settings;
-DROP POLICY IF EXISTS "Full Access Messages" ON public.contact_messages;
-DROP POLICY IF EXISTS "Full Access Testimonials" ON public.testimonials;
-
--- Create Unrestricted Public Access Policies
-CREATE POLICY "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Public Read Projects" ON public.projects FOR SELECT USING (true);
-CREATE POLICY "Public Read Services" ON public.services FOR SELECT USING (true);
-CREATE POLICY "Public Read Skills" ON public.skills FOR SELECT USING (true);
-CREATE POLICY "Public Read Experience" ON public.experience FOR SELECT USING (true);
-CREATE POLICY "Public Read Social" ON public.social_links FOR SELECT USING (true);
-CREATE POLICY "Public Read Media" ON public.media FOR SELECT USING (true);
-CREATE POLICY "Public Read Settings" ON public.site_settings FOR SELECT USING (true);
-CREATE POLICY "Public Read Testimonials" ON public.testimonials FOR SELECT USING (true);
-CREATE POLICY "Public Read Contact Messages" ON public.contact_messages FOR SELECT USING (true);
-
-CREATE POLICY "Full Access Profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Projects" ON public.projects FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Services" ON public.services FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Skills" ON public.skills FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Experience" ON public.experience FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Social" ON public.social_links FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Media" ON public.media FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Settings" ON public.site_settings FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Messages" ON public.contact_messages FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Full Access Testimonials" ON public.testimonials FOR ALL USING (true) WITH CHECK (true);
-
--- REALTIME REPLICATION (Instant Live Changes across all visitor browsers)
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.projects; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.services; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.skills; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.experience; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.social_links; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.media; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.site_settings; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.contact_messages; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.testimonials; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- STORAGE BUCKET FOR MEDIA ASSETS
-INSERT INTO storage.buckets (id, name, public, file_size_limit)
-VALUES ('portfolio-media', 'portfolio-media', true, 10485760)
-ON CONFLICT (id) DO UPDATE SET public = true;
-
-DROP POLICY IF EXISTS "Public Read Media Storage" ON storage.objects;
-CREATE POLICY "Public Read Media Storage" ON storage.objects FOR SELECT USING (bucket_id = 'portfolio-media');
-
-DROP POLICY IF EXISTS "Public Upload Media Storage" ON storage.objects;
-CREATE POLICY "Public Upload Media Storage" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'portfolio-media');
-
-DROP POLICY IF EXISTS "Public Update Media Storage" ON storage.objects;
-CREATE POLICY "Public Update Media Storage" ON storage.objects FOR UPDATE USING (bucket_id = 'portfolio-media');
-
-DROP POLICY IF EXISTS "Public Delete Media Storage" ON storage.objects;
-CREATE POLICY "Public Delete Media Storage" ON storage.objects FOR DELETE USING (bucket_id = 'portfolio-media');`;
-
-    navigator.clipboard.writeText(sqlContent);
+    navigator.clipboard.writeText(MASTER_MIGRATION_SQL);
     setCopiedSql(true);
     setTimeout(() => setCopiedSql(false), 3000);
+  };
+
+  const handleCopyVerificationSql = () => {
+    navigator.clipboard.writeText(VERIFICATION_SQL);
+    setCopiedVerificationSql(true);
+    setTimeout(() => setCopiedVerificationSql(false), 3000);
   };
 
   return (
@@ -761,19 +403,71 @@ CREATE POLICY "Public Delete Media Storage" ON storage.objects FOR DELETE USING 
                 type="button"
                 onClick={handleCopySqlSetup}
                 className="px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl border border-slate-200 dark:border-white/10 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                title="Copies /supabase/migrations/20261028_master_security_repair.sql for Supabase SQL Editor"
               >
                 {copiedSql ? (
                   <>
                     <Check className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="text-emerald-600 dark:text-emerald-400">SQL Copied!</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">Migration SQL Copied!</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-3.5 h-3.5" />
-                    <span>Copy Supabase SQL Setup</span>
+                    <span>Copy Master SQL Migration</span>
                   </>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={handleCopyVerificationSql}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl border border-slate-200 dark:border-white/10 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                title="Copies /supabase/migrations/verify_schema_and_policies.sql (Read-Only audit)"
+              >
+                {copiedVerificationSql ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-emerald-600 dark:text-emerald-400">Verification SQL Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Verification Script (Read-Only)</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* 6-Step Production Migration Checklist */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">
+                  Production Database Migration Checklist (Safe &amp; Non-Destructive)
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                  Order: 1 &rarr; 6
+                </span>
+              </div>
+              <ol className="space-y-1.5 list-decimal list-inside text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                <li>
+                  <strong className="text-slate-800 dark:text-slate-200">1. Backup First:</strong> Click <em>Export Backup JSON</em> below to preserve all current state before running any SQL.
+                </li>
+                <li>
+                  <strong className="text-slate-800 dark:text-slate-200">2. Inspect Existing Schema:</strong> Click <em>Copy Verification Script</em> &rarr; Paste into Supabase SQL Editor &rarr; Run to check current tables and columns.
+                </li>
+                <li>
+                  <strong className="text-slate-800 dark:text-slate-200">3. Run Master Migration:</strong> Click <em>Copy Master SQL Migration</em> &rarr; Paste into Supabase SQL Editor &rarr; Run. (100% idempotent, enables RLS, creates <code className="px-1 py-0.5 bg-black/5 dark:bg-black/30 rounded text-[10px]">public.is_admin()</code>, locks contact messages, secures storage).
+                </li>
+                <li>
+                  <strong className="text-slate-800 dark:text-slate-200">4. Configure Server Secrets:</strong> Set <code className="px-1 py-0.5 bg-black/5 dark:bg-black/30 rounded text-[10px]">SUPABASE_SERVICE_ROLE_KEY</code> and <code className="px-1 py-0.5 bg-black/5 dark:bg-black/30 rounded text-[10px]">ADMIN_EMAIL=anya.24x7@gmail.com</code> in server env vars (never in client bundle).
+                </li>
+                <li>
+                  <strong className="text-slate-800 dark:text-slate-200">5. Authorize Admin Account:</strong> Ensure an admin user with email <code className="px-1 py-0.5 bg-black/5 dark:bg-black/30 rounded text-[10px]">anya.24x7@gmail.com</code> exists in Supabase Authentication.
+                </li>
+                <li>
+                  <strong className="text-slate-800 dark:text-slate-200">6. Verify &amp; Deploy:</strong> Re-run the read-only verification script to ensure 10 tables are RLS-enabled and Realtime is active.
+                </li>
+              </ol>
             </div>
           </div>
 

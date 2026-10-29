@@ -111,11 +111,50 @@ const STORAGE_KEYS = {
   ACTIVITY_LOGS: 'as_portfolio_activity_logs',
 };
 
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const client = getSupabaseClient();
+    if (!client) return null;
+    const { data: { session } } = await client.auth.getSession();
+    return session?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
 async function apiPost(endpoint: string, body: any): Promise<any> {
+  const token = await getAuthToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || `Request failed with status ${res.status}`);
+  }
+  return await res.json();
+}
+
+async function apiFetch(endpoint: string, init?: RequestInit): Promise<any> {
+  const token = await getAuthToken();
+  const headers: Record<string, string> = {
+    ...(init?.headers as Record<string, string> || {}),
+  };
+  if (token && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(endpoint, {
+    ...init,
+    headers,
   });
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
@@ -520,69 +559,104 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Supabase Auth session listener & auto-verification
+  useEffect(() => {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    // Verify existing session on initial load
+    client.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const authUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+          role: 'admin',
+        };
+        setUser(authUser);
+        try {
+          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(authUser));
+        } catch {}
+      } else {
+        setUser(null);
+        try {
+          localStorage.removeItem(STORAGE_KEYS.AUTH);
+        } catch {}
+      }
+    });
+
+    // Listen to real-time auth events (token refresh, logout, session expiration)
+    const { data: authListener } = client.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const authUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+          role: 'admin',
+        };
+        setUser(authUser);
+        try {
+          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(authUser));
+        } catch {}
+      } else {
+        setUser(null);
+        try {
+          localStorage.removeItem(STORAGE_KEYS.AUTH);
+        } catch {}
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
   // Actions
   const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     const rawEmail = (email || '').trim();
     const normalizedEmail = rawEmail.toLowerCase();
     const trimmedPass = (pass || '').trim();
 
-    // 1. If Supabase Auth is configured, attempt Supabase sign in
-    const client = getSupabaseClient();
-    if (client) {
-      try {
-        const { data, error } = await client.auth.signInWithPassword({
-          email: normalizedEmail,
-          password: trimmedPass,
-        });
-        if (!error && data?.user) {
-          const authUser: AuthUser = {
-            id: data.user.id,
-            email: data.user.email || normalizedEmail,
-            role: 'admin',
-          };
-          localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(authUser));
-          setUser(authUser);
-          return { success: true };
-        }
-      } catch (err) {
-        console.warn('Supabase auth attempt error, checking master credentials:', err);
-      }
+    if (!normalizedEmail || !trimmedPass) {
+      return {
+        success: false,
+        error: 'Please enter both email and password.',
+      };
     }
 
-    // 2. Master & Portfolio Admin Credentials
-    const validEmails = [
-      'anya.24x7@gmail.com',
-      'anilstha@design.jpg',
-      'anil@shrestha.design',
-      'admin@anilshrestha.design',
-      'admin@shrestha.design',
-      'admin',
-      'anil',
-      (profile.email || '').trim().toLowerCase(),
-    ].filter(Boolean);
+    const client = getSupabaseClient();
+    if (!client) {
+      return {
+        success: false,
+        error: 'Authentication service is currently unavailable. Please verify connection.',
+      };
+    }
 
-    const isMasterPassword = trimmedPass === 'anildesigns501';
-    const isRecognizedEmail =
-      validEmails.includes(normalizedEmail) ||
-      normalizedEmail.includes('admin') ||
-      normalizedEmail.includes('anil') ||
-      normalizedEmail.includes('anya');
+    try {
+      const { data, error } = await client.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: trimmedPass,
+      });
 
-    if (isMasterPassword && (isRecognizedEmail || Boolean(normalizedEmail))) {
+      if (error || !data?.user || !data?.session) {
+        return {
+          success: false,
+          error: 'Invalid email or password. Please verify your credentials.',
+        };
+      }
+
       const authUser: AuthUser = {
-        id: 'admin-anil-master-id',
-        email: normalizedEmail || 'anya.24x7@gmail.com',
+        id: data.user.id,
+        email: data.user.email || normalizedEmail,
         role: 'admin',
       };
       localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(authUser));
       setUser(authUser);
       return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: 'Invalid email or password. Please verify your credentials.',
+      };
     }
-
-    return {
-      success: false,
-      error: 'Invalid email or password. Please verify your credentials.',
-    };
   };
 
   const logout = async () => {
@@ -1208,54 +1282,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const submitContactMessage = async (
     msg: Omit<ContactMessage, 'id' | 'status' | 'created_at'>
   ): Promise<{ success: boolean; error?: string }> => {
-    const tempId = 'msg-' + Date.now();
-    const optimisticMessage: ContactMessage = {
-      ...msg,
-      id: tempId,
-      status: 'unread',
-      created_at: new Date().toISOString(),
-    };
-    setContactMessages((prev) => [optimisticMessage, ...prev]);
-
     try {
-      const res = await apiPost('/api/contact', msg);
-      if (res && res.message) {
-        setContactMessages((prev) => [
-          res.message,
-          ...prev.filter((m) => m.id !== tempId),
-        ]);
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(msg),
+      });
+
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(resData.error || `Submission failed with status ${res.status}`);
       }
+
+      // If current user is authenticated admin, refresh inquiries list
+      if (user?.role === 'admin') {
+        refreshInquiries().catch(() => {});
+      }
+
       return { success: true };
     } catch (err: any) {
       console.warn('[DataContext] /api/contact error, trying direct client:', err);
       const client = getSupabaseClient();
       if (client) {
         try {
-          const { data, error } = await client
+          const { error } = await client
             .from('contact_messages')
             .insert({
               name: msg.name,
               email: msg.email,
               subject: msg.subject,
               message: msg.message,
+              services: msg.services || null,
               status: 'unread',
-            })
-            .select()
-            .single();
+            });
 
           if (error) throw error;
-          if (data) {
-            setContactMessages((prev) => [
-              data,
-              ...prev.filter((m) => m.id !== tempId),
-            ]);
+          if (user?.role === 'admin') {
+            refreshInquiries().catch(() => {});
           }
           return { success: true };
         } catch (subErr: any) {
-          return { success: false, error: subErr.message };
+          return { success: false, error: subErr.message || 'Unable to submit message. Please try again.' };
         }
       }
-      return { success: true };
+      return { success: false, error: err.message || 'Unable to submit message.' };
     }
   };
 
@@ -1263,49 +1333,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     id: string,
     status: ContactMessage['status']
   ): Promise<boolean> => {
+    const prevMessages = [...contactMessages];
     setContactMessages((prev) =>
       prev.map((m) => (m.id === id ? { ...m, status } : m))
     );
     try {
-      await fetch('/api/admin/inquiry-status', {
+      await apiFetch('/api/admin/inquiry-status', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status }),
       });
+      return true;
     } catch (err) {
       console.warn('Backend update inquiry error:', err);
-    }
-    const client = getSupabaseClient();
-    if (client) {
-      try {
-        await client.from('contact_messages').update({ status }).eq('id', id);
-      } catch (err) {
-        console.error('Supabase updateMessageStatus error:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('contact_messages').update({ status }).eq('id', id);
+          return true;
+        } catch (dbErr) {
+          console.error('Supabase updateMessageStatus error:', dbErr);
+        }
       }
+      // Rollback on failure
+      setContactMessages(prevMessages);
+      return false;
     }
-    return true;
   };
 
   const deleteContactMessage = async (id: string): Promise<boolean> => {
+    const prevMessages = [...contactMessages];
     setContactMessages((prev) => prev.filter((m) => m.id !== id));
     try {
-      await fetch('/api/admin/delete-inquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
+      await apiPost('/api/admin/delete-inquiry', { id });
+      return true;
     } catch (err) {
       console.warn('Backend delete inquiry error:', err);
-    }
-    const client = getSupabaseClient();
-    if (client) {
-      try {
-        await client.from('contact_messages').delete().eq('id', id);
-      } catch (err) {
-        console.error('Supabase deleteContactMessage error:', err);
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('contact_messages').delete().eq('id', id);
+          return true;
+        } catch (dbErr) {
+          console.error('Supabase deleteContactMessage error:', dbErr);
+        }
       }
+      // Rollback on failure
+      setContactMessages(prevMessages);
+      return false;
     }
-    return true;
   };
 
   const saveCookieConsent = (prefs: Partial<CookiePreferences>) => {
@@ -1416,13 +1491,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSocialLinks(apiData.socialLinks);
         }
         if (apiData.siteSettings) setSiteSettings(apiData.siteSettings);
-        if (Array.isArray(apiData.contactMessages)) {
-          setContactMessages(apiData.contactMessages);
-        }
         if (Array.isArray(apiData.testimonials) && apiData.testimonials.length > 0) {
           setTestimonials(apiData.testimonials);
         }
         setIsCloudConnected(true);
+        if (user?.role === 'admin') {
+          refreshInquiries().catch(() => {});
+        }
         return { success: true, message: 'Successfully pulled latest live data from Supabase!' };
       }
       throw new Error(`Server returned HTTP ${res.status}`);
@@ -1441,7 +1516,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           { data: expData },
           { data: socData },
           { data: settsData },
-          { data: msgData },
           testiRes,
         ] = await Promise.all([
           client.from('profiles').select('*').limit(1).maybeSingle(),
@@ -1451,7 +1525,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           client.from('experience').select('*').order('sort_order', { ascending: true }),
           client.from('social_links').select('*').order('sort_order', { ascending: true }),
           client.from('site_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
-          client.from('contact_messages').select('*').order('created_at', { ascending: false }),
           client.from('testimonials').select('*').order('sort_order', { ascending: true }).then((r) => r, () => ({ data: null })),
         ]);
 
@@ -1462,9 +1535,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (expData && expData.length > 0) setExperience(expData);
         if (socData && socData.length > 0) setSocialLinks(socData);
         if (settsData) setSiteSettings(settsData);
-        if (msgData && Array.isArray(msgData)) setContactMessages(msgData);
         const liveTesti = (testiRes as any)?.data;
         if (liveTesti && Array.isArray(liveTesti) && liveTesti.length > 0) setTestimonials(liveTesti);
+        if (user?.role === 'admin') {
+          refreshInquiries().catch(() => {});
+        }
         setIsCloudConnected(true);
         return { success: true, message: 'Successfully pulled latest live data from Supabase!' };
       } catch (fallbackErr: any) {
@@ -1475,22 +1550,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Dedicated inquiry sync function: re-queries /api/contact or client fallback
+  // Dedicated inquiry sync function: queries protected /api/admin/inquiries with Bearer token
   const refreshInquiries = async (): Promise<ContactMessage[]> => {
     try {
-      const res = await fetch('/api/contact');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.messages)) {
-          setContactMessages(data.messages);
-          try {
-            localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(data.messages));
-          } catch {}
-          return data.messages;
-        }
+      const data = await apiFetch('/api/admin/inquiries');
+      if (data && Array.isArray(data.messages)) {
+        setContactMessages(data.messages);
+        try {
+          localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(data.messages));
+        } catch {}
+        return data.messages;
       }
     } catch (err) {
-      console.warn('Backend /api/contact fetch error, trying client fallback:', err);
+      console.warn('Backend /api/admin/inquiries fetch error, trying client fallback:', err);
     }
     const client = getSupabaseClient();
     if (client) {

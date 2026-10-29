@@ -46,7 +46,7 @@ export const AdminLoginPage: React.FC = () => {
       if (res.success) {
         navigate('/admin/dashboard');
       } else {
-        setErrorMsg('Invalid email or password. Please verify your credentials.');
+        setErrorMsg(res.error || 'Invalid email or password. Please verify your credentials.');
       }
     } catch {
       setErrorMsg('Invalid email or password. Please verify your credentials.');

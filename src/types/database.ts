@@ -172,6 +172,9 @@ export interface ContactMessage {
   email: string;
   subject: string;
   message: string;
+  services?: string[];
+  budget?: string;
+  timeline?: string;
   status: 'unread' | 'read' | 'replied' | 'archived';
   created_at: string;
 }
